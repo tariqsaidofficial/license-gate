@@ -15,6 +15,199 @@
 
 ---
 
+## 🗄️ Database Schema & Migration
+
+### 📊 استراتيجية قاعدة البيانات
+
+**المشروع يستخدم:** Prisma ORM مع MySQL
+
+**الخيار الموصى به:** ✅ **Prisma Migrate**
+
+#### لماذا Prisma Migrate؟
+
+| الميزة | Prisma Migrate | Raw SQL |
+|--------|---------------|---------|
+| Type Safety | ✅ كامل | ❌ لا |
+| Auto-complete | ✅ نعم | ❌ لا |
+| Migration History | ✅ نعم | ❌ لا |
+| Rollback | ✅ سهل | ⚠️ يدوي |
+| Client Generation | ✅ تلقائي | ❌ يدوي |
+| التعقيد | ⭐ سهل | ⭐⭐⭐ معقد |
+
+### 🎯 الجداول الجديدة المطلوبة
+
+#### 1. جدول `webhook_events`
+تخزين جميع أحداث Webhook من منصات الدفع المختلفة.
+
+```prisma
+model WebhookEvent {
+  id            Int             @id @default(autoincrement())
+  provider      PaymentProvider // stripe, paypal, ziina
+  eventType     String          @map("event_type") @db.VarChar(100)
+  eventId       String          @unique @map("event_id") @db.VarChar(255)
+  payload       Json            // البيانات الكاملة
+  status        WebhookStatus   @default(pending)
+  errorMessage  String?         @map("error_message") @db.Text
+  createdAt     DateTime        @default(now()) @map("created_at")
+  processedAt   DateTime?       @map("processed_at")
+
+  @@index([provider])
+  @@index([status])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("webhook_events")
+}
+
+enum WebhookStatus {
+  pending
+  processed
+  failed
+}
+```
+
+**الأعمدة:**
+- `id`: معرف فريد تلقائي
+- `provider`: منصة الدفع (stripe/paypal/ziina)
+- `eventType`: نوع الحدث (payment_intent.succeeded, etc)
+- `eventId`: معرف الحدث من المنصة (لتجنب التكرار)
+- `payload`: البيانات الكاملة للحدث (JSON)
+- `status`: حالة المعالجة (pending/processed/failed)
+- `errorMessage`: رسالة الخطأ إن وجدت
+- `createdAt`: تاريخ استلام الحدث
+- `processedAt`: تاريخ معالجة الحدث
+
+#### 2. جدول `payment_licenses`
+ربط المدفوعات بالتراخيص المُنشأة.
+
+```prisma
+model PaymentLicense {
+  id        Int             @id @default(autoincrement())
+  paymentId String          @unique @map("payment_id") @db.VarChar(255)
+  
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int             @map("user_id")
+  
+  license   License         @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  licenseId Int             @map("license_id")
+  
+  amount    Decimal         @db.Decimal(10, 2)
+  currency  String          @db.VarChar(3)
+  provider  PaymentProvider
+  metadata  Json?           // معلومات إضافية
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([paymentId])
+  @@index([userId])
+  @@index([licenseId])
+  @@index([provider])
+  @@index([createdAt])
+  @@map("payment_licenses")
+}
+
+enum PaymentProvider {
+  stripe
+  paypal
+  ziina
+}
+```
+
+**الأعمدة:**
+- `id`: معرف فريد تلقائي
+- `paymentId`: معرف الدفع من المنصة (فريد)
+- `userId`: معرف المستخدم
+- `licenseId`: معرف الترخيص المُنشأ
+- `amount`: المبلغ المدفوع
+- `currency`: العملة (USD, AED, etc)
+- `provider`: منصة الدفع
+- `metadata`: بيانات إضافية (JSON)
+- `createdAt`: تاريخ الإنشاء
+
+### 🔄 تحديثات على الجداول الموجودة
+
+#### تحديث `User` Model
+```prisma
+model User {
+  // ...existing fields...
+  
+  // إضافة العلاقة الجديدة
+  paymentLicenses PaymentLicense[]
+}
+```
+
+#### تحديث `License` Model
+```prisma
+model License {
+  // ...existing fields...
+  
+  // إضافة العلاقة الجديدة
+  paymentLicenses PaymentLicense[]
+}
+```
+
+### 📝 خطوات تطبيق Migration
+
+#### الطريقة الموصى بها (Prisma):
+
+```bash
+# 1. تحديث Prisma Schema
+cp backend/prisma/schema.updated.prisma backend/prisma/schema.prisma
+
+# 2. إنشاء وتطبيق Migration
+cd backend
+npx prisma migrate dev --name add_payment_integration
+
+# 3. توليد Prisma Client
+npx prisma generate
+
+# 4. التحقق من النجاح
+npx prisma migrate status
+npx prisma studio
+
+# 5. إعادة تشغيل Backend
+npm run dev
+```
+
+#### البديل: Raw SQL Migration
+
+إذا كنت تفضل التحكم الكامل، يمكنك استخدام:
+
+```bash
+# تطبيق SQL مباشرة
+mysql -u root -p license_gate < backend/prisma/migrations/20251105_add_payment_tables.sql
+
+# ثم توليد Prisma Client
+cd backend
+npx prisma generate
+```
+
+### 📚 الملفات ذات الصلة
+
+1. **`backend/prisma/schema.updated.prisma`** - Prisma Schema المحدث الكامل
+2. **`backend/prisma/migrations/20251105_add_payment_tables.sql`** - SQL للبديل اليدوي
+3. **`DATABASE_MIGRATION_GUIDE.md`** - دليل تفصيلي للتطبيق
+
+### ⚠️ ملاحظات هامة
+
+1. **نسخ احتياطي:** قم بعمل backup قبل تطبيق أي migration
+   ```bash
+   mysqldump -u root -p license_gate > backup_$(date +%Y%m%d_%H%M%S).sql
+   ```
+
+2. **بيئة التطوير:** جرب Migration في بيئة التطوير أولاً
+
+3. **Rollback Plan:** تأكد من وجود خطة للتراجع:
+   ```bash
+   # في حالة المشاكل
+   npx prisma migrate resolve --rolled-back add_payment_integration
+   ```
+
+4. **Testing:** اختبر جميع العمليات بعد Migration:
+   - إنشاء webhook event
+   - إنشاء payment license
+   - العلاقات مع User و License
+
+---
+
 ## 🎯 المكونات الأساسية
 
 ### 1️⃣ Webhook Endpoint لاستقبال إشعارات الدفع
@@ -1442,7 +1635,7 @@ describe('Email Service', () => {
     const result = await sendLicenseEmail({
       email: 'test@example.com',
       userName: 'Test User',
-      licenseKey: 'ABCD-EFGH-IJKL-MNOP',
+      licenseKey: 'ABCD-1234-EFGH-5678',
       productName: 'Pro License',
       validationLimit: 1000,
       scopes: ['api'],
@@ -1586,7 +1779,7 @@ export const paymentAdminRouter = router({
 #### Environment Variables
 ```env
 # قاعدة البيانات
-DATABASE_URL=mysql://user:pass@host:3306/licensegate
+DATABASE_URL=mysql://user:pass@host:3306/license_gate
 
 # SMTP
 SMTP_HOST=smtp.example.com
@@ -1690,37 +1883,562 @@ Response:
 
 ---
 
-## 📞 Support & Resources
+## ❓ الأسئلة الشائعة (FAQ)
 
-### 🔗 روابط مفيدة
-- Stripe Docs: https://stripe.com/docs
-- PayPal Docs: https://developer.paypal.com
-- Ziina Docs: https://docs.ziina.com
-- Nodemailer: https://nodemailer.com
+### 1️⃣ هل يمكن التحكم في مدة المفتاح؟
 
-### 📧 جهات الاتصال
-- Technical Lead: [Your Email]
-- Project Manager: [PM Email]
-- Support: support@licensegate.io
+**الإجابة:** ✅ **نعم، بشكل كامل!**
+
+يمكنك تحديد مدة الترخيص بالأيام عند إنشاء الدفع:
+
+```typescript
+const result = await trpc.stripe.createCheckout.mutate({
+  email: 'customer@example.com',
+  productName: 'Pro License',
+  amount: 99.99,
+  licenseConfig: {
+    duration: 365,  // 365 يوم = سنة واحدة
+    // أو
+    duration: 30,   // 30 يوم = شهر واحد
+    // أو
+    duration: 7,    // 7 أيام = أسبوع
+    // أو بدون تحديد للتراخيص مدى الحياة
+  }
+});
+```
+
+**خيارات المدة:**
+- ✅ محدد بالأيام (7, 30, 90, 365, etc)
+- ✅ غير محدود (lifetime) - بعدم تحديد `duration`
+- ✅ قابل للتجديد التلقائي (مع Stripe Subscriptions)
+- ✅ قابل للتمديد من لوحة التحكم
 
 ---
 
-## ✅ Overall Progress Tracker
+### 2️⃣ هل يمكن إنشاء ميزة Automake للتراخيص التلقائية؟
 
-| المرحلة | الحالة | التقدم |
-|---------|--------|--------|
-| 1. Webhook Infrastructure | ⏳ Pending | 0% |
-| 2. Stripe Integration | ⏳ Pending | 0% |
-| 3. PayPal Integration | ⏳ Pending | 0% |
-| 4. Ziina Integration | ⏳ Pending | 0% |
-| 5. Email Service | ⏳ Pending | 0% |
-| 6. Auto-License Generator | ⏳ Pending | 0% |
-| 7. Testing & QA | ⏳ Pending | 0% |
-| 8. Deployment | ⏳ Pending | 0% |
+**الإجابة:** ✅ **نعم! هذا هو الهدف الأساسي من المشروع**
+
+**كيف يعمل:**
+
+```
+العميل يدفع → Webhook يُرسل → النظام ينشئ الترخيص تلقائياً → بريد إلكتروني يُرسل
+```
+
+**التدفق الكامل:**
+
+1. **العميل يزور صفحة الدفع**
+   ```svelte
+   <CheckoutButton productId="pro-license-yearly" />
+   ```
+
+2. **يتم الدفع عبر Stripe/PayPal/Ziina**
+
+3. **Webhook يُستقبل تلقائياً**
+   ```typescript
+   // يتم تلقائياً!
+   POST /webhook/stripe
+   ```
+
+4. **النظام ينشئ:**
+   - ✅ حساب المستخدم (إذا لم يكن موجوداً)
+   - ✅ ترخيص جديد بمفتاح فريد
+   - ✅ ربط الدفع بالترخيص
+
+5. **إرسال بريد إلكتروني احترافي:**
+   ```
+   📧 Subject: 🎉 ترخيصك الجديد - Pro License
+   
+   المفتاح: ABCD-1234-EFGH-5678
+   المدة: سنة واحدة
+   الميزات: كل شيء مفتوح!
+   ```
+
+**مدى الصعوبة:** 📊 **متوسط - 3 أيام عمل**
+
+| المهمة | الصعوبة | الوقت |
+|--------|---------|-------|
+| Webhook Setup | ⭐⭐ | 1 يوم |
+| Auto-Generator Service | ⭐⭐ | 1 يوم |
+| Email Templates | ⭐ | 1 يوم |
+
+**الميزة متاحة بالفعل في الخطة!** ✅
 
 ---
 
-**تاريخ الإنشاء:** 5 نوفمبر 2025  
-**آخر تحديث:** 5 نوفمبر 2025  
-**الحالة:** 🟡 In Planning
+### 3️⃣ هل هناك منصات دفع مدمجة؟
+
+**الإجابة:** ✅ **نعم! 3 منصات دفع**
+
+#### المنصات المدعومة:
+
+##### 1. Stripe 💳
+- **الأفضل لـ:** العالمية، الأكثر شعبية
+- **العملات:** USD, EUR, GBP, +135 عملة
+- **الرسوم:** 2.9% + $0.30 لكل معاملة
+- **الميزات:**
+  - ✅ بطاقات الائتمان/الخصم
+  - ✅ Apple Pay / Google Pay
+  - ✅ اشتراكات متكررة
+  - ✅ تقارير تفصيلية
+- **التكامل:** جاهز في الخطة
+
+##### 2. PayPal 🅿️
+- **الأفضل لـ:** العملاء الذين يفضلون PayPal
+- **العملات:** USD, EUR, +25 عملة
+- **الرسوم:** 2.9% + $0.30
+- **الميزات:**
+  - ✅ حسابات PayPal
+  - ✅ بطاقات الائتمان
+  - ✅ PayPal Credit
+  - ✅ متوفر في 200+ دولة
+- **التكامل:** جاهز في الخطة
+
+##### 3. Ziina 🇦🇪
+- **الأفضل لـ:** السوق العربي والإماراتي
+- **العملات:** AED, SAR, KWD
+- **الرسوم:** أقل من المنافسين
+- **الميزات:**
+  - ✅ مدفوعات فورية
+  - ✅ دعم عربي كامل
+  - ✅ متوافق مع البنوك المحلية
+  - ✅ رسوم تنافسية
+- **التكامل:** جاهز في الخطة
+
+#### إضافة منصات أخرى:
+
+يمكن إضافة المزيد بسهولة:
+- Paddle
+- Lemon Squeezy
+- Razorpay (الهند)
+- Paystack (أفريقيا)
+- Mercado Pago (أمريكا اللاتينية)
+
+---
+
+### 4️⃣ هل يمكن الربط مع تطبيقات أخرى عبر API/Webhooks؟
+
+**الإجابة:** ✅ **نعم! بشكل كامل ومرن**
+
+#### الطرق المتاحة:
+
+##### 1. REST API (موجود حالياً)
+
+```typescript
+// التحقق من الترخيص
+POST /api/validate
+{
+  "licenseKey": "ABCD-1234-EFGH-5678",
+  "productId": "my-app"
+}
+
+// الاستجابة
+{
+  "valid": true,
+  "expirationDate": "2026-11-05",
+  "features": ["api", "advanced_features"],
+  "remainingValidations": 9500
+}
+```
+
+##### 2. Webhooks الخاصة بك
+
+يمكنك تكوين النظام لإرسال webhooks عند:
+- ✅ إنشاء ترخيص جديد
+- ✅ انتهاء صلاحية ترخيص
+- ✅ تجديد ترخيص
+- ✅ إلغاء/تعليق ترخيص
+
+```typescript
+// في إعدادات التطبيق
+POST https://your-app.com/webhooks/license
+{
+  "event": "license.created",
+  "licenseKey": "ABCD-1234-EFGH-5678",
+  "userId": 123,
+  "features": ["api", "premium"],
+  "expirationDate": "2026-11-05"
+}
+```
+
+##### 3. التكامل مع SaaS Products
+
+**مثال: تطبيق WordPress Plugin**
+
+```php
+// في البلاجن
+function activate_plugin() {
+  $license = $_POST['license_key'];
+  
+  // التحقق من LicenseGate
+  $response = wp_remote_post('https://api.licensegate.io/validate', [
+    'body' => ['licenseKey' => $license]
+  ]);
+  
+  if ($response['valid']) {
+    // تفعيل الميزات حسب الصلاحيات
+    if (in_array('premium', $response['features'])) {
+      enable_premium_features();
+    }
+  }
+}
+```
+
+**مثال: تطبيق Mobile (Flutter/React Native)**
+
+```dart
+// في التطبيق
+Future<void> validateLicense(String key) async {
+  final response = await http.post(
+    'https://api.licensegate.io/validate',
+    body: {'licenseKey': key}
+  );
+  
+  if (response['valid']) {
+    // فتح الميزات حسب الـ scopes
+    setState(() {
+      features = response['features'];
+      isPremium = features.contains('premium');
+    });
+  }
+}
+```
+
+**مثال: تطبيق Desktop (Electron)**
+
+```javascript
+// في التطبيق
+async function activateLicense(licenseKey) {
+  const response = await fetch('https://api.licensegate.io/validate', {
+    method: 'POST',
+    body: JSON.stringify({ licenseKey })
+  });
+  
+  const data = await response.json();
+  
+  if (data.valid) {
+    // حفظ في local storage
+    localStorage.setItem('license', licenseKey);
+    localStorage.setItem('features', JSON.stringify(data.features));
+    
+    // تحديث UI
+    enableFeatures(data.features);
+  }
+}
+```
+
+**مثال: تطبيقات أخرى عبر API**
+
+```typescript
+// في تطبيقك
+async function checkLicense(licenseKey: string) {
+  const response = await fetch('https://api.licensegate.io/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ licenseKey }),
+  });
+  
+  const data = await response.json();
+  
+  if (data.valid) {
+    // تفعيل الميزات
+    enableFeatures(data.features);
+  } else {
+    // عرض رسالة خطأ
+    showError('ترخيص غير صالح');
+  }
+}
+```
+
+#### تحديد الصلاحيات حسب المفتاح:
+
+```typescript
+// عند إنشاء الدفع
+licenseConfig: {
+  duration: 365,
+  scopes: ['api', 'advanced_features', 'premium_support'],
+  // يمكن تخصيص حسب Package
+}
+
+// في التطبيق الخاص بك
+if (license.scopes.includes('api')) {
+  // تفعيل API access
+}
+if (license.scopes.includes('advanced_features')) {
+  // تفعيل الميزات المتقدمة
+}
+if (license.scopes.includes('premium_support')) {
+  // عرض خيار الدعم المميز
+}
+```
+
+#### الحدود المتاحة:
+
+```typescript
+// IP Limit
+ipLimit: 5  // يمكن استخدام الترخيص من 5 أجهزة فقط
+
+// Validation Limit
+validationLimit: 10000  // 10,000 طلب تحقق شهرياً
+
+// Rate Limiting
+replenishInterval: 'DAY'
+replenishAmount: 100  // يتجدد 100 طلب يومياً
+```
+
+---
+
+### 5️⃣ هل يمكن تعليق أو إيقاف أو إلغاء ترخيص؟
+
+**الإجابة:** ✅ **نعم! تحكم كامل**
+
+#### العمليات المتاحة:
+
+##### 1. تعليق الترخيص (Suspend)
+
+```typescript
+// من لوحة التحكم أو API
+await prisma.license.update({
+  where: { id: licenseId },
+  data: { active: false }
+});
+```
+
+**النتيجة:**
+- ❌ الترخيص يتوقف عن العمل فوراً
+- ✅ البيانات تبقى محفوظة
+- ✅ يمكن إعادة التفعيل لاحقاً
+
+##### 2. إعادة التفعيل (Reactivate)
+
+```typescript
+await prisma.license.update({
+  where: { id: licenseId },
+  data: { active: true }
+});
+```
+
+##### 3. إلغاء الترخيص نهائياً (Revoke)
+
+```typescript
+// حذف نهائي
+await prisma.license.delete({
+  where: { id: licenseId }
+});
+
+// أو تعليم كملغي
+await prisma.license.update({
+  where: { id: licenseId },
+  data: { 
+    active: false,
+    notes: 'Revoked by admin on ' + new Date()
+  }
+});
+```
+
+##### 4. تمديد المدة (Extend)
+
+```typescript
+// إضافة 30 يوم
+await prisma.license.update({
+  where: { id: licenseId },
+  data: {
+    expirationDate: new Date(
+      license.expirationDate.getTime() + (30 * 24 * 60 * 60 * 1000)
+    )
+  }
+});
+```
+
+##### 5. تحديث الحدود (Update Limits)
+
+```typescript
+await prisma.license.update({
+  where: { id: licenseId },
+  data: {
+    validationLimit: 20000,  // زيادة الحد
+    ipLimit: 10,              // زيادة عدد الأجهزة
+  }
+});
+```
+
+#### من لوحة التحكم:
+
+```typescript
+// تطبيق Admin Dashboard
+export const licenseAdminRouter = router({
+  // تعليق ترخيص
+  suspendLicense: adminProcedure
+    .input(z.object({ licenseId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.prisma.license.update({
+        where: { id: input.licenseId },
+        data: { active: false }
+      });
+    }),
+
+  // إلغاء ترخيص
+  revokeLicense: adminProcedure
+    .input(z.object({ licenseId: z.number(), reason: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      return await ctx.prisma.license.update({
+        where: { id: input.licenseId },
+        data: { 
+          active: false,
+          notes: `Revoked: ${input.reason}`
+        }
+      });
+    }),
+
+  // تمديد المدة
+  extendLicense: adminProcedure
+    .input(z.object({ 
+      licenseId: z.number(), 
+      days: z.number() 
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const license = await ctx.prisma.license.findUnique({
+        where: { id: input.licenseId }
+      });
+      
+      const newExpiration = new Date(
+        license.expirationDate.getTime() + 
+        (input.days * 24 * 60 * 60 * 1000)
+      );
+      
+      return await ctx.prisma.license.update({
+        where: { id: input.licenseId },
+        data: { expirationDate: newExpiration }
+      });
+    }),
+});
+```
+
+#### إشعارات تلقائية:
+
+```typescript
+// عند تعليق الترخيص
+async function suspendLicenseWithNotification(licenseId: number, reason: string) {
+  // 1. تعليق الترخيص
+  const license = await prisma.license.update({
+    where: { id: licenseId },
+    data: { active: false }
+  });
+  
+  // 2. إرسال بريد للعميل
+  await sendEmail({
+    to: license.user.email,
+    subject: '⚠️ تم تعليق ترخيصك',
+    html: `
+      <h2>تم تعليق ترخيصك</h2>
+      <p>السبب: ${reason}</p>
+      <p>للمزيد من المعلومات، تواصل معنا.</p>
+    `
+  });
+  
+  return license;
+}
+```
+
+---
+
+## 📦 الباقات المقترحة (Pricing Examples)
+
+### مثال لباقات التراخيص:
+
+```typescript
+const packages = {
+  starter: {
+    name: 'Starter',
+    price: 29,
+    currency: 'usd',
+    duration: 365,
+    features: {
+      validationLimit: 1000,
+      ipLimit: 2,
+      scopes: ['basic_features']
+    }
+  },
+  
+  professional: {
+    name: 'Professional',
+    price: 99,
+    currency: 'usd',
+    duration: 365,
+    features: {
+      validationLimit: 10000,
+      ipLimit: 5,
+      scopes: ['basic_features', 'api', 'advanced_features']
+    }
+  },
+  
+  enterprise: {
+    name: 'Enterprise',
+    price: 299,
+    currency: 'usd',
+    duration: 365,
+    features: {
+      validationLimit: null, // غير محدود
+      ipLimit: null,         // غير محدود
+      scopes: ['all_features', 'api', 'advanced_features', 'premium_support', 'white_label']
+    }
+  }
+};
+```
+
+---
+
+## 🔐 الأمان والحماية
+
+### الحماية المدمجة:
+
+1. **Webhook Signature Verification**
+   - ✅ التحقق من توقيع Stripe/PayPal/Ziina
+   - ✅ منع Replay Attacks
+   - ✅ HMAC SHA256 encryption
+
+2. **Rate Limiting**
+   - ✅ حد على طلبات التحقق
+   - ✅ حماية من الاستخدام المفرط
+   - ✅ Automatic replenishment
+
+3. **IP Limiting**
+   - ✅ تحديد عدد الأجهزة
+   - ✅ منع المشاركة غير المصرح بها
+   - ✅ تتبع IP addresses
+
+4. **Database Security**
+   - ✅ Prisma ORM - SQL Injection safe
+   - ✅ Encrypted connections
+   - ✅ Prepared statements
+
+5. **API Keys**
+   - ✅ RSA encryption للـ API keys
+   - ✅ مفاتيح فريدة لكل مستخدم
+   - ✅ يمكن إلغاؤها وتجديدها
+
+---
+
+## 🎨 تخصيص صفحات الدفع
+
+### Branding المتاح:
+
+```typescript
+// Stripe Checkout مخصص
+const session = await stripe.checkout.sessions.create({
+  // ...
+  custom_text: {
+    submit: {
+      message: 'سيتم إنشاء ترخيصك تلقائياً'
+    }
+  },
+  allow_promotion_codes: true,  // رموز الخصم
+  billing_address_collection: 'required',
+  phone_number_collection: {
+    enabled: true
+  }
+});
+```
+
+---
 
