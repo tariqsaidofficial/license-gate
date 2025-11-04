@@ -19,6 +19,7 @@ model User {
   createdAt       DateTime @default(now())
 
   marketingEmails Boolean @default(false)
+  isAdmin         Boolean @default(false)
   rsaPublicKey    String  @db.Text
   rsaPrivateKey   String  @db.Text
 
