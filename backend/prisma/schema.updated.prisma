@@ -10,6 +10,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ========================================
+// Core Models
+// ========================================
+
 model User {
   id              Int      @id @default(autoincrement())
   email           String   @unique
@@ -23,10 +27,10 @@ model User {
   rsaPublicKey    String  @db.Text
   rsaPrivateKey   String  @db.Text
 
-  licenses License[]
-  logs     Log[]
-
-  apiKeys ApiKey[]
+  licenses        License[]
+  logs            Log[]
+  apiKeys         ApiKey[]
+  paymentLicenses PaymentLicense[]
 }
 
 enum ReplenishInterval {
@@ -60,7 +64,8 @@ model License {
 
   createdAt DateTime @default(now())
 
-  logs Log[]
+  logs            Log[]
+  paymentLicenses PaymentLicense[]
 
   @@unique([userId, licenseKey])
 }
@@ -119,15 +124,15 @@ enum PaymentProvider {
 }
 
 model WebhookEvent {
-  id            Int           @id @default(autoincrement())
+  id            Int             @id @default(autoincrement())
   provider      PaymentProvider
-  eventType     String        @map("event_type") @db.VarChar(100)
-  eventId       String        @unique @map("event_id") @db.VarChar(255)
+  eventType     String          @map("event_type") @db.VarChar(100)
+  eventId       String          @unique @map("event_id") @db.VarChar(255)
   payload       Json
-  status        WebhookStatus @default(pending)
-  errorMessage  String?       @map("error_message") @db.Text
-  createdAt     DateTime      @default(now()) @map("created_at")
-  processedAt   DateTime?     @map("processed_at")
+  status        WebhookStatus   @default(pending)
+  errorMessage  String?         @map("error_message") @db.Text
+  createdAt     DateTime        @default(now()) @map("created_at")
+  processedAt   DateTime?       @map("processed_at")
 
   @@index([provider])
   @@index([status])
@@ -137,20 +142,20 @@ model WebhookEvent {
 }
 
 model PaymentLicense {
-  id         Int             @id @default(autoincrement())
-  paymentId  String          @unique @map("payment_id") @db.VarChar(255)
-  
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     Int             @map("user_id")
-  
-  license    License         @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-  licenseId  Int             @map("license_id")
-  
-  amount     Decimal         @db.Decimal(10, 2)
-  currency   String          @db.VarChar(3)
-  provider   PaymentProvider
-  metadata   Json?
-  createdAt  DateTime        @default(now()) @map("created_at")
+  id        Int             @id @default(autoincrement())
+  paymentId String          @unique @map("payment_id") @db.VarChar(255)
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int             @map("user_id")
+
+  license   License         @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  licenseId Int             @map("license_id")
+
+  amount    Decimal         @db.Decimal(10, 2)
+  currency  String          @db.VarChar(3)
+  provider  PaymentProvider
+  metadata  Json?
+  createdAt DateTime        @default(now()) @map("created_at")
 
   @@index([paymentId])
   @@index([userId])
