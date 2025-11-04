@@ -17,7 +17,7 @@ GET /license/{user-id}/{license-key}/verify
 ```json
 {
   "valid": true,
-  "status": "VALID"
+  "result": "VALID"
 }
 ```
 
@@ -166,14 +166,20 @@ def verify_license(user_id, license_key):
 using System.Net.Http;
 using System.Text.Json;
 
+public class LicenseResponse
+{
+    public bool valid { get; set; }
+    public string result { get; set; }
+}
+
 public async Task<bool> VerifyLicense(string userId, string licenseKey)
 {
     using var client = new HttpClient();
     var url = $"https://your-instance.com/license/{userId}/{licenseKey}/verify";
     var response = await client.GetAsync(url);
     var json = await response.Content.ReadAsStringAsync();
-    var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-    return (bool)data["valid"];
+    var data = JsonSerializer.Deserialize<LicenseResponse>(json);
+    return data.valid;
 }
 ```
 
