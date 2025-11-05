@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// Core Models
+// ========================================
+
+model User {
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  isEmailVerified Boolean
+  passwordHash    String?
+  refreshSession  String?
+  createdAt       DateTime @default(now())
+
+  marketingEmails Boolean @default(false)
+  isAdmin         Boolean @default(false)
+  rsaPublicKey    String  @db.Text
+  rsaPrivateKey   String  @db.Text
+
+  licenses        License[]
+  logs            Log[]
+  apiKeys         ApiKey[]
+  paymentLicenses PaymentLicense[]
+}
+
+enum ReplenishInterval {
+  TEN_SECONDS
+  MINUTE
+  HOUR
+  DAY
+}
+
+model License {
+  id Int @id @default(autoincrement())
+
+  active Boolean @default(true)
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  licenseKey String
+
+  name  String
+  notes String @db.Text
+
+  ipLimit        Int?
+  licenseScope   String?
+  expirationDate DateTime?
+
+  validationPoints  Int?
+  validationLimit   Int?
+  replenishAmount   Int?
+  replenishInterval ReplenishInterval?
+
+  createdAt DateTime @default(now())
+
+  logs            Log[]
+  paymentLicenses PaymentLicense[]
+
+  @@unique([userId, licenseKey])
+}
+
+enum ValidationResult {
+  VALID
+  NOT_FOUND
+  NOT_ACTIVE
+  EXPIRED
+  LICENSE_SCOPE_FAILED
+  IP_LIMIT_EXCEEDED
+  RATE_LIMIT_EXCEEDED
+}
+
+model Log {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  license   License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  licenseId Int
+
+  ip        String
+  result    ValidationResult
+  metadata  String
+  timestamp DateTime         @default(now())
+}
+
+model ApiKey {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  key  String @unique
+  name String
+
+  createdAt DateTime @default(now())
+}
+
+// ========================================
+// Payment Integration Models
+// ========================================
+
+enum WebhookStatus {
+  pending
+  processed
+  failed
+}
+
+enum PaymentProvider {
+  stripe
+  paypal
+  ziina
+}
+
+model WebhookEvent {
+  id            Int             @id @default(autoincrement())
+  provider      PaymentProvider
+  eventType     String          @map("event_type") @db.VarChar(100)
+  eventId       String          @unique @map("event_id") @db.VarChar(255)
+  payload       Json
+  status        WebhookStatus   @default(pending)
+  errorMessage  String?         @map("error_message") @db.Text
+  createdAt     DateTime        @default(now()) @map("created_at")
+  processedAt   DateTime?       @map("processed_at")
+
+  @@index([provider])
+  @@index([status])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("webhook_events")
+}
+
+model PaymentLicense {
+  id        Int             @id @default(autoincrement())
+  paymentId String          @unique @map("payment_id") @db.VarChar(255)
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int             @map("user_id")
+
+  license   License         @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  licenseId Int             @map("license_id")
+
+  amount    Decimal         @db.Decimal(10, 2)
+  currency  String          @db.VarChar(3)
+  provider  PaymentProvider
+  metadata  Json?
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([paymentId])
+  @@index([userId])
+  @@index([licenseId])
+  @@index([provider])
+  @@index([createdAt])
+  @@map("payment_licenses")
+}
