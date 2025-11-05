@@ -30,7 +30,6 @@ model User {
   logs            Log[]
   apiKeys         ApiKey[]
   paymentLicenses PaymentLicense[]
-  emailVerificationTokens EmailVerificationToken[]
 
   @@index([email])
   @@index([uuid])

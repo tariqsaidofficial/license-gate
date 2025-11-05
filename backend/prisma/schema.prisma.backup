@@ -30,7 +30,6 @@ model User {
   logs            Log[]
   apiKeys         ApiKey[]
   paymentLicenses PaymentLicense[]
-  emailVerificationTokens EmailVerificationToken[]
 
   @@index([email])
   @@index([uuid])
@@ -168,25 +167,4 @@ model PaymentLicense {
   @@index([provider])
   @@index([createdAt])
   @@map("payment_licenses")
-}
-
-// ========================================
-// Email Verification Models
-// ========================================
-
-model EmailVerificationToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique @db.VarChar(255)
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int      @map("user_id")
-  
-  expiresAt DateTime @map("expires_at")
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([token])
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("email_verification_tokens")
 }
