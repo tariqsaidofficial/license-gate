@@ -1,42 +1,42 @@
 # 🔧 Admin Scripts - LicenseGate
 
-مجموعة من السكريبتات لإدارة المستخدمين والصلاحيات في LicenseGate.
+Collection of scripts for managing users and permissions in LicenseGate.
 
-## 📋 السكريبتات المتاحة
+## 📋 Available Scripts
 
-### 1. عرض جميع المستخدمين
-يعرض قائمة بجميع المستخدمين مع تفاصيلهم.
+### 1. List All Users
+Display a list of all users with their details.
 
 ```bash
 cd backend
 npm run list-users
 ```
 
-**الناتج:**
-- ID المستخدم
-- البريد الإلكتروني
-- هل هو Admin؟
-- هل البريد مُفعّل؟
-- عدد التراخيص
-- عدد API Keys
-- تاريخ الإنشاء
+**Output:**
+- User ID
+- Email
+- Is Admin?
+- Is Email Verified?
+- Number of Licenses
+- Number of API Keys
+- Creation Date
 
 ---
 
-### 2. تعيين مستخدم كـ Admin
-يجعل مستخدم معين لديه صلاحيات Admin كاملة.
+### 2. Set User as Admin
+Grant admin privileges to a specific user.
 
 ```bash
 cd backend
 npm run set-admin <email>
 ```
 
-**مثال:**
+**Example:**
 ```bash
 npm run set-admin info@dxbmark.com
 ```
 
-**الناتج:**
+**Output:**
 ```
 🔍 Searching for user: info@dxbmark.com
 
@@ -57,9 +57,67 @@ npm run set-admin info@dxbmark.com
 
 ---
 
-## 🗄️ تعديلات قاعدة البيانات
+### 3. Check Specific User Details
+Display all details for a specific user.
 
-تم إضافة حقل `isAdmin` إلى جدول `User`:
+```bash
+cd backend
+npm run check-user <email>
+# or
+npx ts-node --files scripts/check-user.ts <email>
+```
+
+**Example:**
+```bash
+npm run check-user info@dxbmark.com
+```
+
+**Output:**
+```
+📋 User Information:
+====================
+Email: info@dxbmark.com
+ID: 1
+Email Verified: ✅ Yes
+Admin: ✅ Yes
+Has Password: ✅ Yes
+Created: 2025-11-04...
+```
+
+---
+
+### 4. Verify User Email
+Activate email verification for a specific user.
+
+```bash
+cd backend
+npm run verify-user <email>
+# or
+npx ts-node --files scripts/verify-user.ts <email>
+```
+
+**Example:**
+```bash
+npm run verify-user info@dxbmark.com
+```
+
+---
+
+### 5. Verify All Users
+Activate email verification for all users.
+
+```bash
+cd backend
+npm run verify-all-users
+# or
+npx ts-node --files scripts/verify-all-users.ts
+```
+
+---
+
+## 🗄️ Database Schema Changes
+
+Added `isAdmin` field to `User` table:
 
 ```prisma
 model User {
@@ -83,23 +141,26 @@ model User {
 
 ---
 
-## 🔐 استخدام MySQL مباشرة
+## 🔐 Using MySQL Directly
 
-يمكنك أيضاً استخدام MySQL مباشرة:
+You can also use MySQL directly:
 
-### عرض المستخدمين:
+### View Users
+
 ```bash
 docker exec -i license-gate-mysql mysql -uroot -ppassword license_gate \
   -e "SELECT id, email, isAdmin, isEmailVerified FROM User;"
 ```
 
-### تعيين Admin:
+### Set Admin
+
 ```bash
 docker exec -i license-gate-mysql mysql -uroot -ppassword license_gate \
   -e "UPDATE User SET isAdmin = 1 WHERE email = 'user@example.com';"
 ```
 
-### إلغاء Admin:
+### Remove Admin
+
 ```bash
 docker exec -i license-gate-mysql mysql -uroot -ppassword license_gate \
   -e "UPDATE User SET isAdmin = 0 WHERE email = 'user@example.com';"
@@ -107,26 +168,26 @@ docker exec -i license-gate-mysql mysql -uroot -ppassword license_gate \
 
 ---
 
-## 📝 ملاحظات
+## 📝 Notes
 
-1. **الحقل الافتراضي:** جميع المستخدمين الجدد يتم إنشاؤهم بـ `isAdmin = false`
-2. **الأمان:** تأكد من تعيين Admin فقط للمستخدمين الموثوقين
-3. **تطبيق التغييرات:** إذا قمت بتعديل Schema، قم بتشغيل:
+1. **Default Value:** All new users are created with `isAdmin = false`
+2. **Security:** Only grant admin access to trusted users
+3. **Applying Changes:** If you modify the Schema, run:
    ```bash
    npm run prisma-up
    ```
 
 ---
 
-## 🚀 الخطوات التالية
+## 🚀 Next Steps
 
-بعد تعيين Admin، يمكنك:
+After setting up an admin, you can:
 
-1. إضافة middleware للتحقق من صلاحيات Admin في API routes
-2. إنشاء لوحة تحكم Admin في Frontend
-3. إضافة endpoints خاصة بالـ Admin فقط
+1. Add middleware to verify admin permissions in API routes
+2. Create an Admin dashboard in Frontend
+3. Add admin-only endpoints
 
-مثال middleware:
+Example middleware:
 
 ```typescript
 // src/middleware/admin.middleware.ts
@@ -137,7 +198,7 @@ export const requireAdmin = async (
   res: Response, 
   next: NextFunction
 ) => {
-  const user = req.user; // من authentication middleware
+  const user = req.user; // from authentication middleware
   
   if (!user || !user.isAdmin) {
     return res.status(403).json({
@@ -151,5 +212,5 @@ export const requireAdmin = async (
 
 ---
 
-**تاريخ الإنشاء:** 5 نوفمبر 2025
-**الحالة:** ✅ جاهز للاستخدام
+**Created:** November 5, 2025  
+**Status:** ✅ Ready to Use

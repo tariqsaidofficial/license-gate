@@ -16,7 +16,10 @@
     "tsoa-watch": "nodemon --exec \"npm run tsoa-gen\" --watch tsoa.json",
     "gen-env": "gen-env-types .env -o src/types/env.d.ts -e .",
     "set-admin": "ts-node --files scripts/set-admin.ts",
-    "list-users": "ts-node --files scripts/list-users.ts"
+    "list-users": "ts-node --files scripts/list-users.ts",
+    "check-user": "ts-node --files scripts/check-user.ts",
+    "verify-user": "ts-node --files scripts/verify-user.ts",
+    "verify-all-users": "ts-node --files scripts/verify-all-users.ts"
   },
   "keywords": [],
   "author": "",

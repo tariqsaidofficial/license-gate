@@ -1,0 +1,13 @@
+# Ignore artifacts:
+node_modules
+dist
+build
+.svelte-kit
+
+# Ignore all markdown files (if you want to format them manually)
+# *.md
+
+# Ignore lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
