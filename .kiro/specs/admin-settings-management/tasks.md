@@ -20,33 +20,33 @@
     - Implement key management and rotation support
     - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 2.3 Add settings validation and testing functionality
+  - [x] 2.3 Add settings validation and testing functionality
     - Create validation schemas for SMTP and OAuth settings
     - Implement SMTP connection testing with real server
     - Add OAuth configuration validation
     - _Requirements: 1.3, 2.4, 3.1, 3.2_
 
-- [ ] 3. Configuration Loading System
-  - [ ] 3.1 Create ConfigurationLoader service
+- [x] 3. Configuration Loading System
+  - [x] 3.1 Create ConfigurationLoader service
     - Implement priority-based configuration loading (DB > ENV > defaults)
     - Add configuration caching with Redis/memory cache
     - Create configuration refresh mechanism
     - _Requirements: 6.1, 6.2, 6.4_
 
-  - [ ] 3.2 Integrate configuration loader with existing application
+  - [x] 3.2 Integrate configuration loader with existing application
     - Update mailer service to use dynamic SMTP settings
     - Modify OAuth authentication to use database settings
     - Add configuration hot-reload without server restart
     - _Requirements: 1.5, 2.3, 6.5_
 
-- [ ] 4. Settings API Endpoints
-  - [ ] 4.1 Create tRPC settings router with admin protection
+- [x] 4. Settings API Endpoints
+  - [x] 4.1 Create tRPC settings router with admin protection
     - Implement getSettings endpoint with category filtering
     - Add updateSettings endpoint with validation
     - Create deleteSettings endpoint with audit logging
     - _Requirements: 1.1, 1.2, 2.1, 2.2_
 
-  - [ ] 4.2 Add SMTP testing endpoint
+  - [x] 4.2 Add SMTP testing endpoint
     - Create testSmtp endpoint that sends test email
     - Implement temporary configuration testing without saving
     - Add detailed error reporting for SMTP failures

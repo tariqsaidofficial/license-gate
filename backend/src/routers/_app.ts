@@ -6,6 +6,7 @@ import { authRouter } from "./auth";
 import { licenseRouter } from "./license";
 import { logsRouter } from "./logs";
 import { settingsRouter } from "./settings.router";
+import { configurationRouter } from "./configuration.router";
 import { verificationRouter } from "./verification";
 
 export const appRouter = router({
@@ -16,6 +17,7 @@ export const appRouter = router({
   verification: verificationRouter,
   admin: adminRouter,
   settings: settingsRouter,
+  configuration: configurationRouter,
 });
 
 export type AppRouter = typeof appRouter;

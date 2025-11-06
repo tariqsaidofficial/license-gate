@@ -28,6 +28,11 @@
     "test:login": "ts-node --files scripts/test-login.ts",
     "test:reset-password": "ts-node --files scripts/test-reset-password.ts",
     "test:password-complete": "ts-node --files scripts/test-password-reset-complete.ts",
+    "test:settings-validation": "ts-node --files scripts/test-settings-validation.ts",
+    "test:smtp-validation": "ts-node --files scripts/test-smtp-validation.ts",
+    "test:settings-integration": "ts-node --files scripts/test-settings-integration.ts",
+    "test:smtp-live": "ts-node --files scripts/test-smtp-live.ts",
+    "test:configuration-system": "ts-node --files scripts/test-configuration-system.ts",
     "cleanup:expired-tokens": "ts-node --files scripts/cleanup-expired-tokens.ts"
   },
   "keywords": [],

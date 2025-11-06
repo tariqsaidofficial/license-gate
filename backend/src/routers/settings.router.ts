@@ -3,6 +3,15 @@ import { settingsService } from '../services/settings.service';
 import { protectedProcedure, router } from '../trpc';
 import { SettingsCategory } from '../types/settings';
 import { ShowError } from '../utils/ShowError';
+import {
+  smtpSettingsSchema,
+  oauthSettingsSchema,
+  generalSettingsSchema,
+  securitySettingsSchema,
+  testEmailSchema,
+  settingsCategorySchema,
+  convertToStringRecord
+} from '../utils/validation.schemas';
 
 // Helper function to check admin access
 const requireAdmin = async (userId: number) => {
@@ -17,42 +26,11 @@ const requireAdmin = async (userId: number) => {
   }
 };
 
-// Validation schemas
-const smtpSettingsSchema = z.object({
-  host: z.string().min(1, "SMTP host is required"),
-  port: z.number().min(1).max(65535, "Port must be between 1 and 65535"),
-  username: z.string().email("Username must be a valid email"),
-  password: z.string().min(1, "Password is required"),
-  sender: z.string().min(1, "Sender is required"),
-  secure: z.boolean().default(true)
-});
-
-const oauthSettingsSchema = z.object({
-  googleClientId: z.string().optional(),
-  googleClientSecret: z.string().optional(),
-  githubClientId: z.string().optional(),
-  githubClientSecret: z.string().optional()
-});
-
-const generalSettingsSchema = z.object({
-  siteName: z.string().optional(),
-  supportEmail: z.string().email().optional(),
-  maintenanceMode: z.boolean().optional(),
-  registrationEnabled: z.boolean().optional()
-});
-
-const securitySettingsSchema = z.object({
-  sessionTimeout: z.number().min(300).max(86400).optional(),
-  maxLoginAttempts: z.number().min(1).max(20).optional(),
-  passwordMinLength: z.number().min(6).max(128).optional(),
-  requireTwoFactor: z.boolean().optional()
-});
-
 export const settingsRouter = router({
   // Get settings by category
   getSettings: protectedProcedure
     .input(z.object({
-      category: z.enum(['smtp', 'oauth', 'general', 'security'])
+      category: settingsCategorySchema
     }))
     .query(async ({ ctx, input }) => {
       await requireAdmin(ctx.userId);
@@ -76,24 +54,33 @@ export const settingsRouter = router({
       await requireAdmin(ctx.userId);
       
       try {
-        // Convert to string format for storage
-        const settingsToSave = {
+        console.log('📧 Updating SMTP settings:', {
           host: input.host,
-          port: input.port.toString(),
+          port: input.port,
           username: input.username,
-          password: input.password,
           sender: input.sender,
-          secure: input.secure.toString()
-        };
+          secure: input.secure
+        });
+
+        // Convert to string format for storage
+        const settingsToSave = convertToStringRecord(input);
 
         await settingsService.setSettings(SettingsCategory.SMTP, settingsToSave, ctx.userId);
+        
+        console.log('✅ SMTP settings saved successfully');
         
         return {
           success: true,
           message: 'SMTP settings updated successfully'
         };
       } catch (error) {
-        console.error('Failed to update SMTP settings:', error);
+        console.error('❌ Failed to update SMTP settings:', error);
+        
+        // More specific error message
+        if (error instanceof Error) {
+          throw new ShowError(error.message || "Failed to update SMTP settings", "internal-server-error");
+        }
+        
         throw new ShowError("Failed to update SMTP settings", "internal-server-error");
       }
     }),
@@ -105,12 +92,8 @@ export const settingsRouter = router({
       await requireAdmin(ctx.userId);
       
       try {
-        // Filter out undefined values
-        const settingsToSave: Record<string, string> = {};
-        if (input.googleClientId !== undefined) settingsToSave.googleClientId = input.googleClientId;
-        if (input.googleClientSecret !== undefined) settingsToSave.googleClientSecret = input.googleClientSecret;
-        if (input.githubClientId !== undefined) settingsToSave.githubClientId = input.githubClientId;
-        if (input.githubClientSecret !== undefined) settingsToSave.githubClientSecret = input.githubClientSecret;
+        // Convert to string format for storage (filters out undefined)
+        const settingsToSave = convertToStringRecord(input);
 
         await settingsService.setSettings(SettingsCategory.OAUTH, settingsToSave, ctx.userId);
         
@@ -131,12 +114,8 @@ export const settingsRouter = router({
       await requireAdmin(ctx.userId);
       
       try {
-        // Filter out undefined values and convert to strings
-        const settingsToSave: Record<string, string> = {};
-        if (input.siteName !== undefined) settingsToSave.siteName = input.siteName;
-        if (input.supportEmail !== undefined) settingsToSave.supportEmail = input.supportEmail;
-        if (input.maintenanceMode !== undefined) settingsToSave.maintenanceMode = input.maintenanceMode.toString();
-        if (input.registrationEnabled !== undefined) settingsToSave.registrationEnabled = input.registrationEnabled.toString();
+        // Convert to string format for storage (filters out undefined)
+        const settingsToSave = convertToStringRecord(input);
 
         await settingsService.setSettings(SettingsCategory.GENERAL, settingsToSave, ctx.userId);
         
@@ -157,12 +136,8 @@ export const settingsRouter = router({
       await requireAdmin(ctx.userId);
       
       try {
-        // Filter out undefined values and convert to strings
-        const settingsToSave: Record<string, string> = {};
-        if (input.sessionTimeout !== undefined) settingsToSave.sessionTimeout = input.sessionTimeout.toString();
-        if (input.maxLoginAttempts !== undefined) settingsToSave.maxLoginAttempts = input.maxLoginAttempts.toString();
-        if (input.passwordMinLength !== undefined) settingsToSave.passwordMinLength = input.passwordMinLength.toString();
-        if (input.requireTwoFactor !== undefined) settingsToSave.requireTwoFactor = input.requireTwoFactor.toString();
+        // Convert to string format for storage (filters out undefined)
+        const settingsToSave = convertToStringRecord(input);
 
         await settingsService.setSettings(SettingsCategory.SECURITY, settingsToSave, ctx.userId);
         
@@ -193,14 +168,7 @@ export const settingsRouter = router({
 
   // Send test email
   sendTestEmail: protectedProcedure
-    .input(z.object({
-      smtpSettings: smtpSettingsSchema,
-      recipientEmail: z.string().email("Invalid recipient email"),
-      templateData: z.object({
-        siteName: z.string().optional(),
-        userName: z.string().optional()
-      }).optional()
-    }))
+    .input(testEmailSchema)
     .mutation(async ({ ctx, input }) => {
       await requireAdmin(ctx.userId);
       
@@ -286,7 +254,7 @@ export const settingsRouter = router({
   // Validate settings
   validateSettings: protectedProcedure
     .input(z.object({
-      category: z.enum(['smtp', 'oauth', 'general', 'security']),
+      category: settingsCategorySchema,
       settings: z.record(z.string())
     }))
     .mutation(async ({ ctx, input }) => {

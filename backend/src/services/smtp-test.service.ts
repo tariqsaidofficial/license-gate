@@ -151,14 +151,23 @@ export class SmtpTestService implements ISmtpTestService {
    * Generate test email content
    */
   private generateTestEmailContent(templateData?: any) {
-    const timestamp = new Date().toLocaleString();
+    const timestamp = new Date().toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short'
+    });
     const testData = {
       siteName: 'LicenseGate',
       timestamp,
       ...templateData
     };
 
-    const subject = `🧪 SMTP Test Email - ${testData.siteName}`;
+    const subject = `✅ SMTP Test Email - ${testData.siteName}`;
     
     const html = `
 <!DOCTYPE html>
@@ -168,120 +177,250 @@ export class SmtpTestService implements ISmtpTestService {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMTP Test Email</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #1f2937;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .email-wrapper {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f8f9fa;
         }
         .container {
             background: white;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 35px;
+            padding-bottom: 25px;
+            border-bottom: 3px solid #f3f4f6;
+        }
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
         }
         .header h1 {
-            color: #2563eb;
-            margin: 0;
+            color: #111827;
+            margin: 15px 0 10px;
             font-size: 28px;
+            font-weight: 700;
         }
         .success-badge {
-            background: #10b981;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
             font-size: 14px;
             font-weight: 600;
-            display: inline-block;
-            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .intro-text {
+            text-align: center;
+            font-size: 16px;
+            color: #4b5563;
+            margin-bottom: 30px;
+            line-height: 1.7;
         }
         .info-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 6px;
-            margin: 20px 0;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border-left: 4px solid #667eea;
         }
         .info-section h3 {
-            margin-top: 0;
-            color: #374151;
+            margin: 0 0 18px 0;
+            color: #111827;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .info-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 12px 0;
             border-bottom: 1px solid #e5e7eb;
         }
         .info-item:last-child {
             border-bottom: none;
+            padding-bottom: 0;
         }
         .info-label {
             font-weight: 600;
             color: #6b7280;
+            font-size: 14px;
         }
         .info-value {
+            color: #111827;
+            font-weight: 500;
+            text-align: right;
+            font-size: 14px;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0 0 0;
+        }
+        .checklist li {
+            padding: 10px 0;
             color: #374151;
+            font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .checklist li:before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            border-radius: 12px;
+            border: 2px solid #c7d2fe;
+        }
+        .cta-section h3 {
+            color: #4338ca;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .cta-section p {
+            color: #6366f1;
+            font-size: 14px;
+            margin: 5px 0;
         }
         .footer {
             text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
-            color: #6b7280;
-            font-size: 14px;
+            margin-top: 35px;
+            padding-top: 25px;
+            border-top: 2px solid #f3f4f6;
+            color: #9ca3af;
+            font-size: 13px;
         }
-        .emoji {
-            font-size: 24px;
-            margin-right: 10px;
+        .footer p {
+            margin: 5px 0;
+        }
+        .footer strong {
+            color: #6b7280;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 5px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 25px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .info-item {
+                flex-direction: column;
+                gap: 5px;
+            }
+            .info-value {
+                text-align: left;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1><span class="emoji">🧪</span>SMTP Test Email</h1>
-            <div class="success-badge">✅ Configuration Working</div>
-        </div>
-        
-        <p>Congratulations! Your SMTP configuration is working correctly. This test email was sent successfully from your <strong>${testData.siteName}</strong> application.</p>
-        
-        <div class="info-section">
-            <h3>📧 Email Details</h3>
-            <div class="info-item">
-                <span class="info-label">Sent At:</span>
-                <span class="info-value">${testData.timestamp}</span>
+    <div class="email-wrapper">
+        <div class="container">
+            <div class="header">
+                <div class="logo">🧪</div>
+                <h1>SMTP Test Email</h1>
+                <div class="success-badge">
+                    <span>✅</span>
+                    <span>Configuration Working Perfectly</span>
+                </div>
             </div>
-            <div class="info-item">
-                <span class="info-label">Application:</span>
-                <span class="info-value">${testData.siteName}</span>
+            
+            <p class="intro-text">
+                🎉 <strong>Congratulations!</strong> Your SMTP configuration is working correctly. 
+                This test email was sent successfully from your <strong>${testData.siteName}</strong> application.
+            </p>
+            
+            <div class="info-section">
+                <h3>📧 Email Details</h3>
+                <div class="info-item">
+                    <span class="info-label">Sent At:</span>
+                    <span class="info-value">${testData.timestamp}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Application:</span>
+                    <span class="info-value">${testData.siteName}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Test Type:</span>
+                    <span class="info-value">SMTP Configuration Test</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value"><span class="badge">✓ Delivered Successfully</span></span>
+                </div>
             </div>
-            <div class="info-item">
-                <span class="info-label">Test Type:</span>
-                <span class="info-value">SMTP Configuration Test</span>
+            
+            <div class="info-section">
+                <h3>🔧 What This Means</h3>
+                <ul class="checklist">
+                    <li>Your SMTP server settings are correctly configured</li>
+                    <li>Email delivery is working properly</li>
+                    <li>Authentication credentials are valid</li>
+                    <li>You can now save these settings with confidence</li>
+                    <li>All automated emails will use this configuration</li>
+                </ul>
             </div>
-        </div>
-        
-        <div class="info-section">
-            <h3>🔧 Next Steps</h3>
-            <ul>
-                <li>Your SMTP settings are correctly configured</li>
-                <li>Email delivery is working properly</li>
-                <li>You can now save these settings with confidence</li>
-                <li>All automated emails will use this configuration</li>
-            </ul>
-        </div>
-        
-        <div class="footer">
-            <p>This is an automated test email from ${testData.siteName}<br>
-            If you received this email unexpectedly, please contact your system administrator.</p>
+
+            <div class="cta-section">
+                <h3>🎯 Ready for Production!</h3>
+                <p>Your email system is fully configured and ready to send notifications,</p>
+                <p>password resets, verification emails, and more!</p>
+            </div>
+            
+            <div class="footer">
+                <p><strong>This is an automated test email from ${testData.siteName}</strong></p>
+                <p>If you received this email unexpectedly, please contact your system administrator.</p>
+                <p style="margin-top: 15px; color: #d1d5db; font-size: 11px;">
+                    Powered by LicenseGate Email Service • Secure • Reliable • Fast
+                </p>
+            </div>
         </div>
     </div>
 </body>

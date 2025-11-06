@@ -389,6 +389,14 @@ export const adminRouter = router({
       await requireAdmin(ctx.userId);
 
       try {
+        // Get current SMTP settings from database
+        const { settingsService } = await import('../services/settings.service');
+        const smtpSettings = await settingsService.getCurrentSmtpSettings();
+        
+        if (!smtpSettings) {
+          throw new ShowError("SMTP not configured. Please configure SMTP settings first.", "invalid-schema");
+        }
+
         // Get admin user info for sender context
         const adminUser = await prisma.user.findUnique({
           where: { id: ctx.userId },
@@ -424,7 +432,7 @@ export const adminRouter = router({
 
         const subject = `[TEST] ${templateInfo.subject}`;
 
-        // Send test email using the mailer
+        // Send test email using SMTP settings from database
         await sendMail(
           input.recipientEmail,
           subject,
@@ -432,7 +440,8 @@ export const adminRouter = router({
           {
             ...defaultData,
             testNote: `This is a test email sent by ${adminUser?.fullName || 'Admin'} (${adminUser?.email}) from LicenseGate Demo.`
-          }
+          },
+          smtpSettings  // Pass SMTP settings from database
         );
 
         console.log('✅ Test email sent successfully to:', input.recipientEmail);
