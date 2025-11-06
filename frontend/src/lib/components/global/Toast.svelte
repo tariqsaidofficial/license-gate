@@ -66,10 +66,9 @@
 </script>
 
 <div 
-	class="toast-container transform transition-all duration-300 ease-in-out {visible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}"
-	style="direction: rtl;"
+	class="toast-item transform transition-all duration-300 ease-in-out {visible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}"
 >
-	<div class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto border {getColorClasses()}">
+	<div class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto border {getColorClasses()}"
 		<div class="p-4">
 			<div class="flex items-start">
 				<div class="flex-shrink-0">

@@ -21,7 +21,13 @@
 	let resetPasswordResult: { userID: string; newPassword: string } | null = null;
 	let customPassword = '';
 	let useCustomPassword = false;
-	let toast: { message: string; type: 'success' | 'error' } | null = null;
+	let toast: { 
+		id: string; 
+		title: string; 
+		message?: string; 
+		type: 'success' | 'error' | 'info' | 'warning';
+		duration?: number;
+	} | null = null;
 
 	// Form data
 	let createForm = {
@@ -330,7 +336,12 @@
 	}
 
 	function showToast(message: string, type: 'success' | 'error') {
-		toast = { message, type };
+		toast = { 
+			id: Date.now().toString(),
+			title: message,
+			type: type,
+			duration: 4000
+		};
 		setTimeout(() => toast = null, 4000);
 	}
 
@@ -839,5 +850,5 @@
 
 <!-- Toast Notification -->
 {#if toast}
-	<Toast message={toast.message} type={toast.type} />
+	<Toast {toast} />
 {/if}

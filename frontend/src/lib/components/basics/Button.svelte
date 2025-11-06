@@ -13,6 +13,7 @@
 	export let snug = false
 	export let red = false
 	export let orange = false
+	export let type: 'button' | 'submit' | 'reset' = 'button'
 	export let href: string | undefined = undefined
 	export let target: undefined | '_blank' | '_self' | '_parent' | '_top' = undefined
 
@@ -54,6 +55,7 @@
 	this={href ? 'a' : 'button'}
 	{href}
 	{target}
+	{type}
 	class="text-white font-medium rounded-sm relative {className} select-none block"
 	class:loading
 	class:disabled
