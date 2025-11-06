@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { userEmail } from '../../stores/auth'
-	import { showError, showVerificationSent } from '../../stores/toast'
+	import { logError, logSuccess } from '../../stores/alerts'
 	import { trpc } from '../../trpcClient'
 	import Button from '../basics/Button.svelte'
 
@@ -36,12 +36,12 @@
 			})
 			
 			if (result.success) {
-				showVerificationSent($userEmail!)
+				logSuccess(`Verification email sent to ${$userEmail}`)
 			} else {
-				showError('Failed to send verification email')
+				logError('Failed to send verification email')
 			}
 		} catch (error) {
-			showError('Failed to send verification email')
+			logError('Failed to send verification email')
 		} finally {
 			isResending = false
 		}

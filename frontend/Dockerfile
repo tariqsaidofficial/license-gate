@@ -1,37 +1,53 @@
-# Use this image as the platform to build the web
-FROM node:20-alpine AS dockerbuild
+# --------------------------
+# Frontend Dockerfile (SvelteKit)
+# --------------------------
 
-# A small line inside the image to show who made it
-LABEL Developers="Curlybytes,DevLeoko"
+# Build stage
+FROM node:20 AS builder
 
-# https://docs.licensegate.io/self-hosting/#frontend
-# The WORKDIR instruction sets the working directory for everything that will happen next
 WORKDIR /app
-COPY ./frontend/package.json ./
-COPY ./frontend/package-lock.json ./
-RUN npm ci
 
-# Copy all local files into the image
-COPY ./frontend ./
+# Copy package files
+COPY package*.json ./
 
-# Copy the .env file to the image
-COPY .env ./.env
+# Install dependencies
+RUN npm install
 
-ENV NODE_OPTIONS="--max-old-space-size=1024"
+# Copy source code
+COPY . .
 
+# Build the SvelteKit app
 RUN npm run build
 
-# Add nginx for static frontend https://docs.licensegate.io/self-hosting/#serving-the-files-with-nginx
-FROM nginx:1.19-alpine
+# Production stage
+FROM node:20-alpine AS runner
 
-#Copy the Build folder only https://docs.licensegate.io/self-hosting/#frontend
-COPY --from=dockerbuild /app/build /usr/share/nginx/html
+WORKDIR /app
 
-# move the nginx.conf file to the configurations of nginx to load them correctly.
-COPY ./frontend/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy package files
+COPY package*.json ./
 
-# Expose port 5000 since this is now from nginx(80 or 443)
+# Install only production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/package.json ./
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S sveltekit -u 1001
+
+# Change ownership of the app directory
+RUN chown -R sveltekit:nodejs /app
+USER sveltekit
+
+# Expose port
 EXPOSE 5000
 
-# Default command to run Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/ || exit 1
+
+# Start the application
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5000"]

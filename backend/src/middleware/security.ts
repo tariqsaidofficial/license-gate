@@ -51,7 +51,7 @@ export const speedLimiter = slowDown({
 
 // Helmet configuration for security headers
 export const helmetConfig = helmet({
-  contentSecurityPolicy: {
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
@@ -61,7 +61,7 @@ export const helmetConfig = helmet({
       connectSrc: ["'self'"],
       frameSrc: ["https://accounts.google.com"],
     },
-  },
+  } : false, // Disable CSP in development
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,

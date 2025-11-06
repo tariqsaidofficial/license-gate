@@ -2,7 +2,8 @@
 	import { goto } from '$app/navigation'
 	import { onDestroy, onMount } from 'svelte'
 	import Button from '../../../lib/components/basics/Button.svelte'
-	import Toast from '../../../lib/components/global/Toast.svelte'
+	import ResetPasswordModal from '../../../lib/components/admin/ResetPasswordModal.svelte'
+	import { logSuccess, logError } from '../../../lib/stores/alerts'
 	import { trpc } from '../../../lib/trpcClient'
 
 	// Auto-refresh interval
@@ -18,16 +19,6 @@
 	let showResetPasswordModal = false;
 	let showDeleteModal = false;
 	let selectedUser: any = null;
-	let resetPasswordResult: { userID: string; newPassword: string } | null = null;
-	let customPassword = '';
-	let useCustomPassword = false;
-	let toast: { 
-		id: string; 
-		title: string; 
-		message?: string; 
-		type: 'success' | 'error' | 'info' | 'warning';
-		duration?: number;
-	} | null = null;
 
 	// Form data
 	let createForm = {
@@ -88,7 +79,7 @@
 		isRefreshing = true;
 		await loadData();
 		isRefreshing = false;
-		showToast('Data refreshed successfully', 'success');
+		logSuccess('Data refreshed successfully');
 	}
 
 	async function loadData(silent = false) {
@@ -108,7 +99,7 @@
 			}
 		} catch (error) {
 			if (!silent) {
-				showToast('Failed to load data', 'error');
+				logError('Failed to load data');
 			}
 			console.error('Load data error:', error);
 		} finally {
@@ -136,13 +127,13 @@
 				activeUsers: result.isActive ? dashboardStats.activeUsers + 1 : dashboardStats.activeUsers
 			};
 			
-			showToast(`User created successfully! Password: ${result.temporaryPassword}`, 'success');
+			logSuccess(`User created successfully! Temporary password: ${result.temporaryPassword}`);
 			closeCreateModal();
 			
 			// Refresh data in background to sync with server
 			setTimeout(() => loadData(true), 1000);
 		} catch (error: any) {
-			showToast(error.message || 'Failed to create user', 'error');
+			logError(error.message || 'Failed to create user');
 		}
 	}
 
@@ -158,59 +149,36 @@
 					: user
 			);
 			
-			showToast('User updated successfully', 'success');
+			logSuccess('User updated successfully');
 			closeEditModal();
 			
 			// Refresh data in background to sync with server
 			setTimeout(() => loadData(true), 1000);
 		} catch (error: any) {
-			showToast(error.message || 'Failed to update user', 'error');
+			logError(error.message || 'Failed to update user');
 		}
 	}
 
 	// Reset password - show modal
 	function showResetPasswordDialog(user: any) {
 		selectedUser = user;
-		customPassword = '';
-		useCustomPassword = false;
 		showResetPasswordModal = true;
 	}
 
-	// Confirm password reset
-	async function confirmResetPassword() {
-		if (!selectedUser) return;
+	// Handle password reset success
+	function handlePasswordResetSuccess(event: any) {
+		const { type, password } = event.detail;
+		showResetPasswordModal = false;
+		selectedUser = null;
 		
-		try {
-			let result;
-			if (useCustomPassword && customPassword.trim()) {
-				// Use custom password
-				result = await trpc.admin.setUserPassword.mutate({ 
-					userID: selectedUser.userID, 
-					newPassword: customPassword.trim() 
-				});
-			} else {
-				// Generate random password
-				result = await trpc.admin.resetUserPassword.mutate({ userID: selectedUser.userID });
-			}
-			
-			resetPasswordResult = {
-				userID: selectedUser.userID,
-				newPassword: useCustomPassword ? customPassword.trim() : result.newPassword
-			};
-			showToast('Password updated successfully!', 'success');
-		} catch (error: any) {
-			showToast(error.message || 'Failed to reset password', 'error');
-			showResetPasswordModal = false;
-		}
+		// Refresh data to sync with server
+		setTimeout(() => loadData(true), 1000);
 	}
 
 	// Close reset password modal
 	function closeResetPasswordModal() {
 		showResetPasswordModal = false;
-		resetPasswordResult = null;
 		selectedUser = null;
-		customPassword = '';
-		useCustomPassword = false;
 	}
 
 	// Toggle user status
@@ -245,14 +213,14 @@
 					: user
 			);
 			
-			showToast('User status updated successfully', 'success');
+			logSuccess('User status updated successfully');
 			
 			// Refresh data in background to sync with server
 			setTimeout(() => loadData(true), 1000);
 		} catch (error: any) {
 			// Revert optimistic update on error
 			loadData(true);
-			showToast(error.message || 'Failed to update status', 'error');
+			logError(error.message || 'Failed to update status');
 		}
 	}
 
@@ -280,7 +248,7 @@
 			// Make API call
 			await trpc.admin.deleteUser.mutate({ userID: userToDelete.userID });
 			
-			showToast('User deleted successfully', 'success');
+			logSuccess('User deleted successfully');
 			closeDeleteModal();
 			
 			// Refresh data in background to sync with server
@@ -288,7 +256,7 @@
 		} catch (error: any) {
 			// Revert optimistic update on error
 			loadData(true);
-			showToast(error.message || 'Failed to delete user', 'error');
+			logError(error.message || 'Failed to delete user');
 			closeDeleteModal();
 		}
 	}
@@ -335,15 +303,7 @@
 		selectedUser = null;
 	}
 
-	function showToast(message: string, type: 'success' | 'error') {
-		toast = { 
-			id: Date.now().toString(),
-			title: message,
-			type: type,
-			duration: 4000
-		};
-		setTimeout(() => toast = null, 4000);
-	}
+
 
 	function formatDate(date: string) {
 		return new Date(date).toLocaleDateString();
@@ -694,122 +654,7 @@
 	</div>
 {/if}
 
-<!-- Reset Password Modal -->
-{#if showResetPasswordModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-			<div class="p-6">
-				<div class="flex items-center justify-between mb-4">
-					<h3 class="text-lg font-semibold text-gray-900">Reset Password</h3>
-					<button on:click={closeResetPasswordModal} class="text-gray-400 hover:text-gray-600">
-						<span class="material-icons">close</span>
-					</button>
-				</div>
 
-				{#if !resetPasswordResult}
-					<div class="mb-6">
-						<div class="flex items-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-							<span class="material-icons text-yellow-600 mr-3">warning</span>
-							<div>
-								<p class="text-sm font-medium text-yellow-800">Reset Password</p>
-								<p class="text-sm text-yellow-700">This will change the password for <strong>{selectedUser?.email}</strong>.</p>
-							</div>
-						</div>
-
-						<!-- Password Type Selection -->
-						<div class="space-y-4">
-							<div class="flex items-center space-x-4">
-								<label class="flex items-center">
-									<input 
-										type="radio" 
-										bind:group={useCustomPassword} 
-										value={false} 
-										class="mr-2"
-									>
-									<span class="text-sm text-gray-700">Generate random password</span>
-								</label>
-								<label class="flex items-center">
-									<input 
-										type="radio" 
-										bind:group={useCustomPassword} 
-										value={true} 
-										class="mr-2"
-									>
-									<span class="text-sm text-gray-700">Set custom password</span>
-								</label>
-							</div>
-
-							{#if useCustomPassword}
-								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-2">Custom Password:</label>
-									<input 
-										type="password" 
-										bind:value={customPassword}
-										placeholder="Enter new password"
-										class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-										minlength="6"
-										required
-									>
-									<p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
-								</div>
-							{/if}
-						</div>
-					</div>
-
-					<div class="flex justify-end space-x-3">
-						<Button type="button" on:click={closeResetPasswordModal} outlined>Cancel</Button>
-						<Button 
-							type="button" 
-							on:click={confirmResetPassword} 
-							class="bg-red-600 hover:bg-red-700"
-							disabled={useCustomPassword && customPassword.length < 6}
-						>
-							<span class="material-icons mr-2">refresh</span>
-							{useCustomPassword ? 'Set Password' : 'Generate Password'}
-						</Button>
-					</div>
-				{:else}
-					<div class="mb-6">
-						<div class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
-							<span class="material-icons text-green-600 mr-3">check_circle</span>
-							<div>
-								<p class="text-sm font-medium text-green-800">Password Reset Successfully!</p>
-								<p class="text-sm text-green-700">New temporary password has been generated.</p>
-							</div>
-						</div>
-
-						<div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-							<label class="block text-sm font-medium text-gray-700 mb-2">New Temporary Password:</label>
-							<div class="flex items-center space-x-2">
-								<input 
-									type="text" 
-									value={resetPasswordResult.newPassword}
-									readonly
-									class="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-mono"
-								>
-								<Button 
-									type="button" 
-									on:click={() => navigator.clipboard.writeText(resetPasswordResult.newPassword)}
-									class="bg-gray-600 hover:bg-gray-700"
-									size="sm"
-								>
-									<span class="material-icons">content_copy</span>
-								</Button>
-							</div>
-							<p class="text-xs text-gray-500 mt-2">
-								⚠️ Please share this password securely with the user. They should change it on first login.
-							</p>
-						</div>
-					</div>
-
-					<div class="flex justify-end">
-						<Button type="button" on:click={closeResetPasswordModal}>Done</Button>
-					</div>
-				{/if}
-			</div>
-		</div>
-	</div>
-{/if}
 
 <!-- Delete User Modal -->
 {#if showDeleteModal && selectedUser}
@@ -848,7 +693,10 @@
 	</div>
 {/if}
 
-<!-- Toast Notification -->
-{#if toast}
-	<Toast {toast} />
-{/if}
+<!-- Reset Password Modal -->
+<ResetPasswordModal 
+	bind:show={showResetPasswordModal}
+	user={selectedUser}
+	on:success={handlePasswordResetSuccess}
+	on:close={closeResetPasswordModal}
+/>

@@ -1,22 +1,36 @@
-# Simalar from Frontend Module
+# --------------------------
+# Backend Dockerfile (Fixed)
+# --------------------------
 FROM node:20
 
-
-# Standard Express Js building block
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
-COPY . .
 
+# Copy package files first for better caching
+COPY package*.json ./
+
+# ✅ زيادة الذاكرة أثناء build
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 
-#Default the backend to 3000
+# Install all dependencies including dev (needed for tsc)
+RUN npm install
 
-# ✅ Prisma generate لضمان عمل ORM على Render
-RUN npx prisma generate
+# Copy source code
+COPY . .
 
-# ✅ Expose port ليتعرف عليه Render
+# ✅ Build TypeScript → JavaScript
+RUN npm run build
+
+# ✅ Generate Prisma Client
+RUN npm run prisma-gen
+
+# ✅ حذف devDependencies بعد build لتقليل الحجم
+RUN npm prune --omit=dev
+
+# ✅ Expose port and start compiled JS
 EXPOSE 3000
 
-# Start the node.js server https://docs.licensegate.io/self-hosting/#backend
-CMD npm run start
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+CMD ["npm", "run", "start"]

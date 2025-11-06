@@ -21,9 +21,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     command: >
-      sh -c "sleep 30 && npm run prisma-up && npm run prisma-gen && npm run start"
+      sh -c "sleep 30 && npm run prisma-migrate && npm run start"
     depends_on:
       - db
+    restart: unless-stopped
     environment:
       DATABASE_URL: "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOSTNAME}:${MYSQL_PORT}/${MYSQL_DATABASE}"
       NODE_ENV: production
@@ -51,12 +52,15 @@ services:
 
   web:
     build:
-      context: .
-      dockerfile: ./frontend/Dockerfile
-    env_file:
-      - .env
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_API_BASE_URL=${PUBLIC_BACKEND_URL}
+      - PUBLIC_BACKEND_URL=${PUBLIC_BACKEND_URL}
+      - PUBLIC_FRONTEND_URL=${PUBLIC_FRONTEND_URL}
     depends_on:
       - api
+    restart: unless-stopped
     networks:
       - caddy
     labels:

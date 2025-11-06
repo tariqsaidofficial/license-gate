@@ -6,7 +6,7 @@
 	import Skeleton from '../../lib/components/basics/Skeleton.svelte'
 	import VerificationBanner from '../../lib/components/global/VerificationBanner.svelte'
 	import { userEmail } from '../../lib/stores/auth'
-	import { showError, showPaymentSuccess, showVerificationSent } from '../../lib/stores/toast'
+	import { logError, logSuccess } from '../../lib/stores/alerts'
 	import { trpc } from '../../lib/trpcClient'
 
 	let paymentStatus: 'loading' | 'success' | 'failed' | 'not-found' = 'loading'
@@ -37,7 +37,7 @@
 			await new Promise(resolve => setTimeout(resolve, 2000))
 			
 			paymentStatus = 'success'
-			showPaymentSuccess()
+			logSuccess('Payment successful! Your license has been created.')
 			licenseInfo = {
 				licenseKey: 'DEMO-XXXX-XXXX-XXXX',
 				expirationDate: null,
@@ -72,10 +72,10 @@
 			})
 			
 			if (result.success) {
-				showVerificationSent($userEmail!)
+				logSuccess(`Verification email sent to ${$userEmail}`)
 			}
 		} catch (error) {
-			showError('Failed to send verification email')
+			logError('Failed to send verification email')
 		} finally {
 			isResendingEmail = false
 		}

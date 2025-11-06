@@ -208,47 +208,57 @@ export const adminRouter = router({
       userID: z.string()
     }))
     .mutation(async ({ ctx, input }) => {
-      await requireAdmin(ctx.userId);
-
-      const user = await prisma.user.findUnique({
-        where: { userID: input.userID },
-        select: { email: true, company: true }
-      });
-
-      if (!user) {
-        throw new ShowError("User not found", "not-found");
-      }
-
-      // Generate new password
-      const newPassword = generateSecurePassword(12);
-      const passwordHash = await argon2.hash(newPassword);
-
-      // Update password
-      await prisma.user.update({
-        where: { userID: input.userID },
-        data: { passwordHash }
-      });
-
-      // Send password reset email
       try {
-        await sendMail(
-          user.email,
-          "LicenseGate - Password Reset",
-          "reset-password",
-          {
-            email: user.email,
-            password: newPassword,
-            loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
-          }
-        );
-      } catch (error) {
-        console.error('Failed to send password reset email:', error);
-      }
+        await requireAdmin(ctx.userId);
 
-      return {
-        success: true,
-        newPassword // Return for admin to see
-      };
+        const user = await prisma.user.findUnique({
+          where: { userID: input.userID },
+          select: { email: true, company: true }
+        });
+
+        if (!user) {
+          throw new ShowError("User not found", "not-found");
+        }
+
+        // Generate new password
+        const newPassword = generateSecurePassword(12);
+        const passwordHash = await argon2.hash(newPassword);
+
+        // Update password
+        await prisma.user.update({
+          where: { userID: input.userID },
+          data: { passwordHash }
+        });
+
+        // Send password reset email
+        try {
+          await sendMail(
+            user.email,
+            "LicenseGate - Password Reset",
+            "reset-password",
+            {
+              email: user.email,
+              password: newPassword,
+              loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+            }
+          );
+        } catch (emailError) {
+          console.error('Failed to send password reset email:', emailError);
+          // Don't fail the password reset if email fails
+        }
+
+        return {
+          success: true,
+          message: "Password reset successfully",
+          newPassword // Return for admin to see
+        };
+      } catch (error) {
+        console.error('Error in resetUserPassword:', error);
+        if (error instanceof ShowError) {
+          throw error;
+        }
+        throw new ShowError("Failed to reset password", "internal-error");
+      }
     }),
 
   // Toggle user active status
@@ -318,48 +328,67 @@ export const adminRouter = router({
   setUserPassword: protectedProcedure
     .input(z.object({
       userID: z.string(),
-      newPassword: z.string().min(6, "Password must be at least 6 characters")
+      newPassword: z.string().min(6, "Password must be at least 6 characters"),
+      confirmPassword: z.string().optional()
+    }).refine((data) => !data.confirmPassword || data.newPassword === data.confirmPassword, {
+      message: "Passwords do not match",
+      path: ["confirmPassword"]
     }))
     .mutation(async ({ ctx, input }) => {
-      await requireAdmin(ctx.userId);
-
-      const user = await prisma.user.findUnique({
-        where: { userID: input.userID },
-        select: { email: true, fullName: true, company: true }
-      });
-
-      if (!user) {
-        throw new ShowError("User not found", "not-found");
-      }
-
-      // Hash the custom password
-      const passwordHash = await argon2.hash(input.newPassword);
-
-      // Update password
-      await prisma.user.update({
-        where: { userID: input.userID },
-        data: { passwordHash }
-      });
-
-      // Send password notification email
       try {
-        await sendMail(
-          user.email,
-          "LicenseGate - Password Updated",
-          "reset-password",
-          {
-            email: user.email,
-            password: input.newPassword,
-            loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
-          }
-        );
-      } catch (error) {
-        console.error('Failed to send password notification email:', error);
-      }
+        await requireAdmin(ctx.userId);
 
-      return {
-        success: true,
-        newPassword: input.newPassword
-      };
+        // Validate password strength
+        if (input.newPassword.length < 8) {
+          throw new ShowError("Password must be at least 8 characters long", "validation-error");
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { userID: input.userID },
+          select: { email: true, fullName: true, company: true }
+        });
+
+        if (!user) {
+          throw new ShowError("User not found", "not-found");
+        }
+
+        // Hash the custom password
+        const passwordHash = await argon2.hash(input.newPassword);
+
+        // Update password
+        await prisma.user.update({
+          where: { userID: input.userID },
+          data: { passwordHash }
+        });
+
+        // Send password notification email
+        try {
+          await sendMail(
+            user.email,
+            "LicenseGate - Password Updated",
+            "reset-password",
+            {
+              email: user.email,
+              password: input.newPassword,
+              loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+            }
+          );
+        } catch (emailError) {
+          console.error('Failed to send password notification email:', emailError);
+          // Don't fail the password update if email fails
+        }
+
+        return {
+          success: true,
+          message: "Password updated successfully",
+          newPassword: input.newPassword
+        };
+      } catch (error) {
+        console.error('Error in setUserPassword:', error);
+        if (error instanceof ShowError) {
+          throw error;
+        }
+        throw new ShowError("Failed to update password", "internal-error");
+      }
     })
 });

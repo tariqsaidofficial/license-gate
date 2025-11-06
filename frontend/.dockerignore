@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build output (will be copied from builder stage)
+build
+.svelte-kit
+
+# Environment files
+.env.local
+.env.development
+.env.test
+
+# IDE files
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+coverage
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary folders
+tmp
+temp
+
+# Playwright
+test-results
+playwright-report

@@ -3,7 +3,7 @@
 	import { page } from '$app/stores'
 	import { onDestroy, onMount } from 'svelte'
 	import Button from '../../lib/components/basics/Button.svelte'
-	import { showPaymentSuccess } from '../../lib/stores/toast'
+	import { logSuccess } from '../../lib/stores/alerts'
 
 	let paymentId = ''
 	let orderId = ''
@@ -56,7 +56,7 @@
 			
 			if (result.status === 'completed') {
 				status = 'completed'
-				showPaymentSuccess()
+				logSuccess('Payment completed successfully!')
 				if (pollingInterval) clearInterval(pollingInterval)
 				
 				// Redirect to success page

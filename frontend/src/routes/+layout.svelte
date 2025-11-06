@@ -1,7 +1,6 @@
 <script lang="ts">
 	import '../app.scss'
 	import MessageBar from '../lib/components/global/MessageBar.svelte'
-	import ToastContainer from '../lib/components/global/ToastContainer.svelte'
 </script>
 
 <svelte:head>
@@ -11,5 +10,4 @@
 
 <div class="relative z-[60]" id="floatingCardContainer" />
 <MessageBar />
-<ToastContainer />
 <slot />

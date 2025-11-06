@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node --files src/index.ts",
-    "dev": "nodemon src/index.ts --exec \"ts-node --files\"",
     "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts --exec \"ts-node --files\"",
     "prisma-dev": "prisma migrate dev",
     "prisma-dev:create-only": "prisma migrate dev --create-only",
     "prisma-realign": "ts-node ./src/_scripts/realign-migrations.ts",

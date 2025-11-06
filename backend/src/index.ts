@@ -15,14 +15,14 @@ import { tsoaErrorHandler } from "./utils/tsoa-response-error";
 
 // Security middleware imports
 import {
-  apiLimiter,
-  authLimiter,
-  compressionConfig,
-  enforceHTTPS,
-  generalLimiter,
-  helmetConfig,
-  requestLogger,
-  validateEnvVars
+    apiLimiter,
+    authLimiter,
+    compressionConfig,
+    enforceHTTPS,
+    generalLimiter,
+    helmetConfig,
+    requestLogger,
+    validateEnvVars
 } from "./middleware/security";
 
 // Validate environment variables on startup
@@ -88,6 +88,15 @@ app.use(
 setupRateLimitReplenishCron();
 
 RegisterRoutes(app);
+
+// Health check endpoint for Docker
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
 app.use(tsoaErrorHandler);
 

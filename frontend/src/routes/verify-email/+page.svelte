@@ -3,8 +3,7 @@
 	import { onMount } from 'svelte'
 	import Button from '../../lib/components/basics/Button.svelte'
 	import Skeleton from '../../lib/components/basics/Skeleton.svelte'
-	import { logError } from '../../lib/stores/alerts'
-	import { showError, showVerificationSent, showVerificationSuccess } from '../../lib/stores/toast'
+	import { logError, logSuccess } from '../../lib/stores/alerts'
 	import { trpc } from '../../lib/trpcClient'
 
 	let verificationState: 'loading' | 'success' | 'invalid-token' | 'expired-token' | 'server-error' = 'loading'
@@ -31,7 +30,7 @@
 			
 			if (result.success) {
 				verificationState = 'success'
-				showVerificationSuccess()
+				logSuccess('Email verified successfully!')
 				
 				// Redirect to dashboard after 3 seconds
 				setTimeout(() => {
@@ -62,12 +61,12 @@
 			const result = await trpc.verification.resendVerification.mutate({ email })
 			
 			if (result.success) {
-				showVerificationSent(email)
+				logSuccess(`Verification email sent to ${email}`)
 			} else {
-				showError('Failed to send verification email')
+				logError('Failed to send verification email')
 			}
 		} catch (error) {
-			showError('Failed to send verification email')
+			logError('Failed to send verification email')
 		} finally {
 			isResending = false
 		}

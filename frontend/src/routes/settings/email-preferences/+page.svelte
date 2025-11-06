@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation'
 	import { onMount } from 'svelte'
 	import Button from '../../../lib/components/basics/Button.svelte'
-	import { showError, showSuccess } from '../../../lib/stores/toast'
+	import { logError, logSuccess } from '../../../lib/stores/alerts'
 	import { trpc } from '../../../lib/trpcClient'
 
 	let emailPreferences = {
@@ -35,9 +35,9 @@
 			await trpc.auth.update.mutate({ 
 				marketingEmails: emailPreferences.marketingEmails 
 			})
-			showSuccess('Preferences saved successfully')
+			logSuccess('Preferences saved successfully')
 		} catch (error) {
-			showError('Failed to save preferences')
+			logError('Failed to save preferences')
 		} finally {
 			saving = false
 		}
