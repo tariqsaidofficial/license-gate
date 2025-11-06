@@ -118,7 +118,7 @@
 		on:keypress={(e) => e.key === 'Enter' && login()}
 	/>
 
-	<Button {loading} on:click={login} class="mt-4">Login</Button>
+	<Button {loading} on:click={login} class="mt-4 oauth-button-base !bg-blue-500 !text-white border-none">Login</Button>
 
 	{#if PUBLIC_GOOGLE_AUTH_CLIENT_ID != 'none' || (PUBLIC_GITHUB_CLIENT_ID && PUBLIC_GITHUB_CLIENT_ID != 'none')}
 		<div class="my-2 text-sm text-center text-gray-500">or</div>
@@ -138,7 +138,7 @@
 					type="button"
 					aria-label="Continue with Google"
 					disabled={loading}
-					class="google-signin-button"
+					class="oauth-button-base google-signin-button"
 					on:click={() => {
 						// Trigger Google Sign-In programmatically
 						const googleButton = document.querySelector('.g_id_signin');
@@ -176,20 +176,18 @@
 					aria-label="Continue with GitHub"
 					on:click={signInWithGitHub}
 					disabled={loading}
-					class="flex items-center justify-center gap-[0.75em] px-[1.25em] py-[0.75em] rounded-lg font-semibold text-[0.9rem] transition-all border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 shadow-sm w-full sm:w-auto"
+					class="oauth-button-base github-signin-button"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						class="w-[1.5em] h-[1.5em] flex-shrink-0"
-						aria-hidden="true"
-						fill="currentColor"
-					>
-						<path
-							d="M12 .5C5.73.5.5 5.73.5 12a11.5 11.5 0 0 0 7.84 10.93c.57.1.78-.25.78-.56v-2.06c-3.18.7-3.85-1.53-3.85-1.53-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.54-.3-5.22-1.27-5.22-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.52-1.45.11-3.02 0 0 .97-.31 3.18 1.18a10.95 10.95 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.57.23 2.73.11 3.02.74.8 1.17 1.82 1.17 3.07 0 4.4-2.68 5.36-5.24 5.66.41.35.77 1.03.77 2.08v3.08c0 .31.21.67.79.55A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"
-						></path>
+					<svg fill="#ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+						<g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+						<g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+						<g id="SVGRepo_iconCarrier">
+							<title>github</title>
+							<rect fill="none" height="24" width="24"></rect>
+							<path d="M12,2A10,10,0,0,0,8.84,21.5c.5.08.66-.23.66-.5V19.31C6.73,19.91,6.14,18,6.14,18A2.69,2.69,0,0,0,5,16.5c-.91-.62.07-.6.07-.6a2.1,2.1,0,0,1,1.53,1,2.15,2.15,0,0,0,2.91.83,2.16,2.16,0,0,1,.63-1.34C8,16.17,5.62,15.31,5.62,11.5a3.87,3.87,0,0,1,1-2.71,3.58,3.58,0,0,1,.1-2.64s.84-.27,2.75,1a9.63,9.63,0,0,1,5,0c1.91-1.29,2.75-1,2.75-1a3.58,3.58,0,0,1,.1,2.64,3.87,3.87,0,0,1,1,2.71c0,3.82-2.34,4.66-4.57,4.91a2.39,2.39,0,0,1,.69,1.85V21c0,.27.16.59.67.5A10,10,0,0,0,12,2Z"></path>
+						</g>
 					</svg>
-					<span>Continue with GitHub</span>
+					Continue with Github
 				</button>
 			{/if}
 		</div>
@@ -208,37 +206,19 @@
 
 <style>
 	.google-signin-button {
-		max-width: 320px;
-		display: flex;
-		padding: 0.5rem 1.4rem;
-		font-size: 0.875rem;
-		line-height: 1.25rem;
-		font-weight: 700;
-		text-align: center;
-		text-transform: uppercase;
-		vertical-align: middle;
-		align-items: center;
-		border-radius: 0.5rem;
 		border: 1px solid rgba(0, 0, 0, 0.25);
-		gap: 0.75rem;
 		color: rgb(65, 63, 63);
 		background-color: #fff;
-		cursor: pointer;
-		transition: all .6s ease;
-		width: 100%;
 	}
 	
-	.google-signin-button svg {
-		height: 24px;
+	.github-signin-button {
+		background-color: rgb(24, 23, 23);
+		color: #ffffff;
+		border: none;
+		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 	}
 	
-	.google-signin-button:hover {
-		transform: scale(1.02);
-	}
-	
-	.google-signin-button:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-		transform: none;
+	.github-signin-button:hover {
+		box-shadow: none;
 	}
 </style>

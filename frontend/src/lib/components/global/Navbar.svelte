@@ -64,6 +64,13 @@
 			href: '/settings/account',
 			primary: true,
 		},
+		{
+			name: 'Email Templates',
+			icon: 'mail',
+			href: '/demo',
+			primary: false,
+			adminOnly: true,
+		},
 	] as const
 
 	$: visiblePages = PAGES.filter(page => !page.adminOnly || $isAdmin)

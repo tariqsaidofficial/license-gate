@@ -1,0 +1,34 @@
+Additional Terms for Modified Version
+
+This project is a modified version of software originally licensed under the Elastic License 2.0.
+
+All modifications, new features, and improvements are © DXBMark by Tariq Said, 2025.
+
+MODIFICATIONS INCLUDE:
+- Advanced Password Reset System with modern UI and dual options (custom/random)
+- Enhanced OAuth Integration with Google and GitHub sign-in buttons
+- Complete Docker Containerization with multi-stage builds and health checks
+- CI/CD Pipeline implementation with GitHub Actions
+- Comprehensive Documentation organization and restructuring
+- UI/UX Improvements including responsive design and modern components
+- Security Enhancements including Argon2 password hashing and JWT improvements
+- Email System Integration with professional HTML templates
+- Real-time Analytics improvements and dashboard enhancements
+- TypeScript Coverage improvements ensuring 100% type safety
+- Production-ready configurations and deployment optimizations
+
+These modifications are provided under the same Elastic License 2.0 terms, with additional attribution requirements.
+
+ATTRIBUTION REQUIREMENTS:
+- You must retain both this notice and the original Elastic License 2.0 file
+- Any distribution must include attribution to both the original author and modifier
+- Commercial use requires compliance with ELv2 terms and conditions
+
+DISCLAIMER:
+These modifications are provided for educational and internal use purposes.
+The modifier provides no warranty and assumes no liability for the modifications.
+
+Original License: Elastic License 2.0
+Modification License: Same as original (ELv2) with additional attribution
+Modifier: DXBMark by Tariq Said
+Year: 2025

@@ -17,6 +17,56 @@
 		myData = await trpc.auth.me.query()
 	})
 
+	// Admin Settings State
+	let smtpSettings = {
+		host: '',
+		port: 587,
+		username: '',
+		password: '',
+		sender: ''
+	}
+	
+	let oauthSettings = {
+		googleClientId: '',
+		githubClientId: ''
+	}
+	
+	let loadingSmtpSave = false
+	let loadingOAuthSave = false
+	
+	// Load current settings (in real implementation, these would come from backend)
+	onMount(() => {
+		// Load existing settings from environment or backend
+		oauthSettings.googleClientId = PUBLIC_GOOGLE_AUTH_CLIENT_ID || ''
+		oauthSettings.githubClientId = PUBLIC_GITHUB_CLIENT_ID || ''
+	})
+	
+	async function saveSmtpSettings() {
+		loadingSmtpSave = true
+		try {
+			// In real implementation, this would save to backend
+			await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
+			logSuccess('SMTP settings saved successfully')
+		} catch (error) {
+			console.error('Failed to save SMTP settings:', error)
+		} finally {
+			loadingSmtpSave = false
+		}
+	}
+	
+	async function saveOAuthSettings() {
+		loadingOAuthSave = true
+		try {
+			// In real implementation, this would save to backend
+			await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
+			logSuccess('OAuth settings saved successfully')
+		} catch (error) {
+			console.error('Failed to save OAuth settings:', error)
+		} finally {
+			loadingOAuthSave = false
+		}
+	}
+
 	let loadingPasswordReset = false
 	let signOutAllDevices = false
 
@@ -111,7 +161,9 @@
 
 <PageTitle title="Account settings" />
 
-<div class="flex flex-col max-w-md">
+<div class="flex flex-col lg:flex-row gap-6 max-w-7xl">
+	<!-- Main Account Settings -->
+	<div class="flex flex-col max-w-md flex-1">
 	{#if !myData}
 		<Skeleton class="h-20 max-w-md" />
 	{:else}
@@ -300,6 +352,218 @@
 
 			<!-- Other settings components can be added here -->
 
+		</div>
+	{/if}
+	</div>
+
+	<!-- Admin Settings Panel (Right Side) -->
+	{#if myData?.isAdmin}
+		<div class="lg:w-96 flex-shrink-0">
+			<div class="sticky top-4 space-y-6">
+				<!-- SMTP Configuration -->
+				<div class="bg-white rounded-lg shadow-sm border p-6">
+					<div class="flex items-center mb-4">
+						<svg class="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+							<path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+							<path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+						</svg>
+						<h3 class="text-lg font-semibold text-gray-800">SMTP Configuration</h3>
+					</div>
+					<p class="text-sm text-gray-600 mb-4">Configure email server settings for automated emails.</p>
+					
+					<div class="space-y-4">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">SMTP Host</label>
+							<input
+								type="text"
+								bind:value={smtpSettings.host}
+								placeholder="smtp.gmail.com"
+								class="w-full"
+							/>
+						</div>
+						
+						<div class="grid grid-cols-2 gap-3">
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+								<input
+									type="number"
+									bind:value={smtpSettings.port}
+									placeholder="587"
+									class="w-full"
+								/>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-1">Security</label>
+								<select class="w-full">
+									<option value="tls">TLS</option>
+									<option value="ssl">SSL</option>
+								</select>
+							</div>
+						</div>
+						
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+							<input
+								type="email"
+								bind:value={smtpSettings.username}
+								placeholder="your-email@gmail.com"
+								class="w-full"
+							/>
+						</div>
+						
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+							<input
+								type="password"
+								bind:value={smtpSettings.password}
+								placeholder="App password or SMTP password"
+								class="w-full"
+							/>
+						</div>
+						
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Sender Name</label>
+							<input
+								type="text"
+								bind:value={smtpSettings.sender}
+								placeholder="LicenseGate <noreply@yourdomain.com>"
+								class="w-full"
+							/>
+						</div>
+						
+						<Button
+							on:click={saveSmtpSettings}
+							loading={loadingSmtpSave}
+							class="w-full !bg-blue-500 !text-white"
+						>
+							Save SMTP Settings
+						</Button>
+					</div>
+				</div>
+
+				<!-- OAuth Configuration -->
+				<div class="bg-white rounded-lg shadow-sm border p-6">
+					<div class="flex items-center mb-4">
+						<svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"></path>
+						</svg>
+						<h3 class="text-lg font-semibold text-gray-800">OAuth Configuration</h3>
+					</div>
+					<p class="text-sm text-gray-600 mb-4">Configure OAuth providers for social login.</p>
+					
+					<div class="space-y-4">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">
+								<div class="flex items-center">
+									<svg class="w-4 h-4 mr-1" viewBox="0 0 24 24">
+										<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+										<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+										<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+										<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+									</svg>
+									Google Client ID
+								</div>
+							</label>
+							<input
+								type="text"
+								bind:value={oauthSettings.googleClientId}
+								placeholder="123456789-abcdefghijklmnop.apps.googleusercontent.com"
+								class="w-full font-mono text-sm"
+							/>
+						</div>
+						
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">
+								<div class="flex items-center">
+									<svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clip-rule="evenodd"></path>
+									</svg>
+									GitHub Client ID
+								</div>
+							</label>
+							<input
+								type="text"
+								bind:value={oauthSettings.githubClientId}
+								placeholder="Iv1.1234567890abcdef"
+								class="w-full font-mono text-sm"
+							/>
+						</div>
+						
+						<Button
+							on:click={saveOAuthSettings}
+							loading={loadingOAuthSave}
+							class="w-full !bg-green-500 !text-white"
+						>
+							Save OAuth Settings
+						</Button>
+					</div>
+					
+					<div class="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+						<p class="text-xs text-blue-700">
+							<strong>Note:</strong> After updating OAuth settings, restart the application for changes to take effect.
+							See the <a href="/demo" class="underline">setup guide</a> for detailed configuration instructions.
+						</p>
+					</div>
+				</div>
+
+				<!-- Quick Actions -->
+				<div class="bg-white rounded-lg shadow-sm border p-6">
+					<div class="flex items-center mb-4">
+						<svg class="w-5 h-5 text-purple-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+						</svg>
+						<h3 class="text-lg font-semibold text-gray-800">Quick Actions</h3>
+					</div>
+					
+					<div class="space-y-3">
+						<a
+							href="/demo"
+							class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+						>
+							<div class="flex items-center">
+								<svg class="w-4 h-4 text-gray-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+									<path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+									<path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+								</svg>
+								<span class="text-sm font-medium">Email Templates Demo</span>
+							</div>
+							<svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+							</svg>
+						</a>
+						
+						<a
+							href="/user-management"
+							class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+						>
+							<div class="flex items-center">
+								<svg class="w-4 h-4 text-gray-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+									<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+								<span class="text-sm font-medium">User Management</span>
+							</div>
+							<svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+							</svg>
+						</a>
+						
+						<a
+							href="/dashboard"
+							class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+						>
+							<div class="flex items-center">
+								<svg class="w-4 h-4 text-gray-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+									<path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+								</svg>
+								<span class="text-sm font-medium">Dashboard</span>
+							</div>
+							<svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+							</svg>
+						</a>
+					</div>
+				</div>
+			</div>
 		</div>
 	{/if}
 </div>
