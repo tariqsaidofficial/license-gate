@@ -93,7 +93,7 @@
 
 		loading = true
 		try {
-			await trpc.admin.setUserPassword.mutate({ 
+			await trpc.admin.setCustomPassword.mutate({ 
 				userID: user.userID,
 				newPassword: customPassword
 			})

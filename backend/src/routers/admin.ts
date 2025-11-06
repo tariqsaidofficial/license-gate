@@ -44,7 +44,7 @@ export const adminRouter = router({
 
     // Get counts separately for each user
     const usersWithCounts = await Promise.all(
-      users.map(async (user) => {
+      users.map(async (user: any) => {
         const [licenseCount, apiKeyCount] = await Promise.all([
           prisma.license.count({
             where: { userId: user.id, active: true }
@@ -86,123 +86,7 @@ export const adminRouter = router({
     };
   }),
 
-  // Create new user
-  createUser: protectedProcedure
-    .input(z.object({
-      email: z.string().email(),
-      fullName: z.string().min(1, "Full name is required"),
-      company: z.string().optional(),
-      isAdmin: z.boolean().default(false),
-      maxLicenses: z.number().min(0).default(10),
-      maxApiKeys: z.number().min(0).default(5),
-      isActive: z.boolean().default(true)
-    }))
-    .mutation(async ({ ctx, input }) => {
-      await requireAdmin(ctx.userId);
-
-      // Check if user already exists
-      const existingUser = await prisma.user.findUnique({
-        where: { email: input.email }
-      });
-
-      if (existingUser) {
-        throw new ShowError("User with this email already exists", "email-already-in-use");
-      }
-
-      // Generate secure password and user ID
-      const temporaryPassword = generateSecurePassword(12);
-      const passwordHash = await argon2.hash(temporaryPassword);
-      const userID = generateUserID();
-
-      // Generate RSA keys
-      const rsaKey = new NodeRSA({ b: 2048 });
-      const publicKey = rsaKey.exportKey('public');
-      const privateKey = rsaKey.exportKey('private');
-
-      // Create user
-      const newUser = await prisma.user.create({
-        data: {
-          userID,
-          email: input.email,
-          fullName: input.fullName,
-          company: input.company,
-          passwordHash,
-          isEmailVerified: true, // Auto-verify for admin-created users
-          isAdmin: input.isAdmin,
-          isActive: input.isActive,
-          maxLicenses: input.maxLicenses,
-          maxApiKeys: input.maxApiKeys,
-          rsaPublicKey: publicKey,
-          rsaPrivateKey: privateKey,
-          marketingEmails: false
-        }
-      });
-
-      // Send welcome email with credentials
-      try {
-        await sendMail(
-          input.email,
-          "Welcome to LicenseGate - Your Account Details",
-          "verify-email", // Using verify-email template as placeholder
-          {
-            email: input.email,
-            password: temporaryPassword,
-            userId: userID,
-            company: input.company || '',
-            maxLicenses: input.maxLicenses.toString(),
-            maxApiKeys: input.maxApiKeys.toString(),
-            loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
-          }
-        );
-      } catch (error) {
-        console.error('Failed to send welcome email:', error);
-        // Don't fail the user creation if email fails
-      }
-
-      return {
-        ...newUser,
-        temporaryPassword // Return for admin to see
-      };
-    }),
-
-  // Update user
-  updateUser: protectedProcedure
-    .input(z.object({
-      userID: z.string(),
-      fullName: z.string().optional(),
-      company: z.string().optional(),
-      isAdmin: z.boolean().optional(),
-      maxLicenses: z.number().min(0).optional(),
-      maxApiKeys: z.number().min(0).optional(),
-      isActive: z.boolean().optional()
-    }))
-    .mutation(async ({ ctx, input }) => {
-      await requireAdmin(ctx.userId);
-
-      const { userID, ...updateData } = input;
-
-      const updatedUser = await prisma.user.update({
-        where: { userID },
-        data: updateData,
-        select: {
-          id: true,
-          userID: true,
-          email: true,
-          fullName: true,
-          company: true,
-          isEmailVerified: true,
-          isAdmin: true,
-          isActive: true,
-          maxLicenses: true,
-          maxApiKeys: true,
-          updatedAt: true
-        }
-      });
-
-      return updatedUser;
-    }),
-
-  // Reset user password
+  // Reset user password - Generate random password
   resetUserPassword: protectedProcedure
     .input(z.object({
       userID: z.string()
@@ -257,8 +141,167 @@ export const adminRouter = router({
         if (error instanceof ShowError) {
           throw error;
         }
-        throw new ShowError("Failed to reset password", "internal-error");
+        throw new ShowError("Failed to reset password", "internal-server-error");
       }
+    }),
+
+  // Set custom user password - Manual password setting
+  setCustomPassword: protectedProcedure
+    .input(z.object({
+      userID: z.string(),
+      newPassword: z.string().min(6, "Password must be at least 6 characters")
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await requireAdmin(ctx.userId);
+
+        // Validate password strength
+        if (input.newPassword.length < 8) {
+          throw new ShowError("Password must be at least 8 characters long", "invalid-schema");
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { userID: input.userID },
+          select: { email: true, fullName: true, company: true }
+        });
+
+        if (!user) {
+          throw new ShowError("User not found", "not-found");
+        }
+
+        // Hash the custom password
+        const passwordHash = await argon2.hash(input.newPassword);
+
+        // Update password
+        await prisma.user.update({
+          where: { userID: input.userID },
+          data: { passwordHash }
+        });
+
+        // Send password notification email
+        try {
+          await sendMail(
+            user.email,
+            "LicenseGate - Password Updated",
+            "reset-password",
+            {
+              email: user.email,
+              password: input.newPassword,
+              loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+            }
+          );
+        } catch (emailError) {
+          console.error('Failed to send password notification email:', emailError);
+          // Don't fail the password update if email fails
+        }
+
+        return {
+          success: true,
+          message: "Password updated successfully",
+          newPassword: input.newPassword
+        };
+      } catch (error) {
+        console.error('Error in setCustomPassword:', error);
+        if (error instanceof ShowError) {
+          throw error;
+        }
+        throw new ShowError("Failed to update password", "internal-server-error");
+      }
+    }),
+
+  // Create new user
+  createUser: protectedProcedure
+    .input(z.object({
+      email: z.string().email(),
+      fullName: z.string().min(1, "Full name is required"),
+      company: z.string().optional(),
+      isAdmin: z.boolean().default(false),
+      maxLicenses: z.number().min(0).default(10),
+      maxApiKeys: z.number().min(0).default(5),
+      isActive: z.boolean().default(true)
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await requireAdmin(ctx.userId);
+
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: input.email }
+      });
+
+      if (existingUser) {
+        throw new ShowError("User with this email already exists", "email-already-in-use");
+      }
+
+      // Generate secure password and user ID
+      const temporaryPassword = generateSecurePassword(12);
+      const passwordHash = await argon2.hash(temporaryPassword);
+      const userID = generateUserID();
+
+      // Generate RSA keys
+      const rsaKey = new NodeRSA({ b: 2048 });
+      const publicKey = rsaKey.exportKey('public');
+      const privateKey = rsaKey.exportKey('private');
+
+      // Create user
+      const newUser = await prisma.user.create({
+        data: {
+          userID,
+          email: input.email,
+          fullName: input.fullName,
+          company: input.company,
+          passwordHash,
+          isEmailVerified: true, // Auto-verify for admin-created users
+          isAdmin: input.isAdmin,
+          isActive: input.isActive,
+          maxLicenses: input.maxLicenses,
+          maxApiKeys: input.maxApiKeys,
+          rsaPublicKey: publicKey,
+          rsaPrivateKey: privateKey,
+          marketingEmails: false
+        }
+      });
+
+      return {
+        ...newUser,
+        temporaryPassword // Return for admin to see
+      };
+    }),
+
+  // Update user
+  updateUser: protectedProcedure
+    .input(z.object({
+      userID: z.string(),
+      fullName: z.string().optional(),
+      company: z.string().optional(),
+      isAdmin: z.boolean().optional(),
+      maxLicenses: z.number().min(0).optional(),
+      maxApiKeys: z.number().min(0).optional(),
+      isActive: z.boolean().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await requireAdmin(ctx.userId);
+
+      const { userID, ...updateData } = input;
+
+      const updatedUser = await prisma.user.update({
+        where: { userID },
+        data: updateData,
+        select: {
+          id: true,
+          userID: true,
+          email: true,
+          fullName: true,
+          company: true,
+          isEmailVerified: true,
+          isAdmin: true,
+          isActive: true,
+          maxLicenses: true,
+          maxApiKeys: true,
+          updatedAt: true
+        }
+      });
+
+      return updatedUser;
     }),
 
   // Toggle user active status
@@ -322,73 +365,5 @@ export const adminRouter = router({
       });
 
       return { success: true, message: "User deleted successfully" };
-    }),
-
-  // Set custom user password
-  setUserPassword: protectedProcedure
-    .input(z.object({
-      userID: z.string(),
-      newPassword: z.string().min(6, "Password must be at least 6 characters"),
-      confirmPassword: z.string().optional()
-    }).refine((data) => !data.confirmPassword || data.newPassword === data.confirmPassword, {
-      message: "Passwords do not match",
-      path: ["confirmPassword"]
-    }))
-    .mutation(async ({ ctx, input }) => {
-      try {
-        await requireAdmin(ctx.userId);
-
-        // Validate password strength
-        if (input.newPassword.length < 8) {
-          throw new ShowError("Password must be at least 8 characters long", "validation-error");
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { userID: input.userID },
-          select: { email: true, fullName: true, company: true }
-        });
-
-        if (!user) {
-          throw new ShowError("User not found", "not-found");
-        }
-
-        // Hash the custom password
-        const passwordHash = await argon2.hash(input.newPassword);
-
-        // Update password
-        await prisma.user.update({
-          where: { userID: input.userID },
-          data: { passwordHash }
-        });
-
-        // Send password notification email
-        try {
-          await sendMail(
-            user.email,
-            "LicenseGate - Password Updated",
-            "reset-password",
-            {
-              email: user.email,
-              password: input.newPassword,
-              loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
-            }
-          );
-        } catch (emailError) {
-          console.error('Failed to send password notification email:', emailError);
-          // Don't fail the password update if email fails
-        }
-
-        return {
-          success: true,
-          message: "Password updated successfully",
-          newPassword: input.newPassword
-        };
-      } catch (error) {
-        console.error('Error in setUserPassword:', error);
-        if (error instanceof ShowError) {
-          throw error;
-        }
-        throw new ShowError("Failed to update password", "internal-error");
-      }
     })
 });

@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:dev": "ts-node --files src/index.ts",
     "dev": "nodemon src/index.ts --exec \"ts-node --files\"",
     "prisma-dev": "prisma migrate dev",
     "prisma-dev:create-only": "prisma migrate dev --create-only",
@@ -25,6 +26,8 @@
     "test:email-verification": "ts-node --files scripts/test-email-verification.ts",
     "test:webhook-flow": "ts-node --files scripts/test-webhook-flow.ts",
     "test:login": "ts-node --files scripts/test-login.ts",
+    "test:reset-password": "ts-node --files scripts/test-reset-password.ts",
+    "test:password-complete": "ts-node --files scripts/test-password-reset-complete.ts",
     "cleanup:expired-tokens": "ts-node --files scripts/cleanup-expired-tokens.ts"
   },
   "keywords": [],
