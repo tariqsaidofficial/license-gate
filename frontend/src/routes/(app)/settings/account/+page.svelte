@@ -139,16 +139,21 @@
 	async function connectOAuth(provider: 'google' | 'github') {
 		if (provider === 'google') {
 			// Trigger Google OAuth flow
-			if (PUBLIC_GOOGLE_AUTH_CLIENT_ID && PUBLIC_GOOGLE_AUTH_CLIENT_ID !== 'none') {
-				// This would typically redirect to Google OAuth
-				logSuccess('Google OAuth connection will be implemented with real Client ID')
+			if (PUBLIC_GOOGLE_AUTH_CLIENT_ID && PUBLIC_GOOGLE_AUTH_CLIENT_ID !== 'none' && PUBLIC_GOOGLE_AUTH_CLIENT_ID !== 'your-google-client-id') {
+				const redirectUri = `${window.location.origin}/auth/google/callback`
+				const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${PUBLIC_GOOGLE_AUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent`
+				window.location.href = googleUrl
+			} else {
+				logSuccess('Please configure Google Client ID first')
 			}
 		} else if (provider === 'github') {
 			// Trigger GitHub OAuth flow
-			if (PUBLIC_GITHUB_CLIENT_ID && PUBLIC_GITHUB_CLIENT_ID !== 'none') {
+			if (PUBLIC_GITHUB_CLIENT_ID && PUBLIC_GITHUB_CLIENT_ID !== 'none' && PUBLIC_GITHUB_CLIENT_ID !== 'your-github-client-id') {
 				const redirectUri = `${window.location.origin}/auth/github/callback`
 				const githubUrl = `https://github.com/login/oauth/authorize?client_id=${PUBLIC_GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`
 				window.location.href = githubUrl
+			} else {
+				logSuccess('Please configure GitHub Client ID first')
 			}
 		}
 	}
@@ -516,7 +521,7 @@
 					</div>
 					
 					<div class="space-y-3">
-						{#if isAdmin}
+						{#if myData?.isAdmin}
 						<a
 							href="/demo"
 							class="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200"
@@ -551,7 +556,7 @@
 							</svg>
 						</a>
 						
-						{#if isAdmin}
+						{#if myData?.isAdmin}
 						<a
 							href="/user-management"
 							class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
