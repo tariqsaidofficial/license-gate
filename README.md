@@ -294,7 +294,7 @@ All modifications are provided under the same Elastic License 2.0 terms, with ad
 ## 🌟 Acknowledgments
 
 - Original LicenseGate project by [DevLeoko](https://github.com/DevLeoko)
-- Enhanced and extended by [DXBMark - Tariq Said](https://github.com/TariqSaid)
+- Enhanced and extended by [Tariq Said](https://github.com/tariqsaidofficial)
 - Built with amazing open-source technologies
 
 ---
