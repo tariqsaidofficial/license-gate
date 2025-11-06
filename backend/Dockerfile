@@ -8,6 +8,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY . .
 
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
 #Default the backend to 3000
 
 # ✅ Prisma generate لضمان عمل ORM على Render

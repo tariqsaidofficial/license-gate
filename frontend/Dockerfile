@@ -17,6 +17,8 @@ COPY ./frontend ./
 # Copy the .env file to the image
 COPY .env ./.env
 
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
 RUN npm run build
 
 # Add nginx for static frontend https://docs.licensegate.io/self-hosting/#serving-the-files-with-nginx
