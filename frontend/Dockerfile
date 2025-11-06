@@ -9,7 +9,7 @@ LABEL Developers="Curlybytes,DevLeoko"
 WORKDIR /app
 COPY ./frontend/package.json ./
 COPY ./frontend/package-lock.json ./
-RUN npm install
+RUN npm ci
 
 # Copy all local files into the image
 COPY ./frontend ./
