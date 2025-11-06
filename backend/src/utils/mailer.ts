@@ -1,21 +1,13 @@
 import { createTransport } from "nodemailer";
 import fs from "fs";
 
-const port = Number.parseInt(process.env.SMTP_PORT || '587');
-const useSSL = port === 465;
-
 const mailer = createTransport({
   host: process.env.SMTP_HOST,
-  port: port,
-  secure: useSSL, // true for 465, false for other ports
+  port: Number.parseInt(process.env.SMTP_PORT),
   auth: {
     user: process.env.SMTP_USERNAME,
     pass: process.env.SMTP_PASSWORD,
   },
-  tls: {
-    // Do not fail on invalid certificates
-    rejectUnauthorized: false
-  }
 });
 
 type MailTemplateName = "verify-email" | "reset-password";

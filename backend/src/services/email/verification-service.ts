@@ -56,17 +56,136 @@ export async function sendVerificationEmail(params: {
 
   const subject = '📧 تحقق من بريدك الإلكتروني - LicenseGate';
   
-  try {
-    await sendMail(params.email, subject, 'verify-email', {
-      url: verificationUrl,
-      username: params.userName,
-    });
-    
-    console.log(`[Verification] Email sent successfully to: ${params.email}`);
-  } catch (error) {
-    console.error(`[Verification] Failed to send email to ${params.email}:`, error);
-    throw new Error(`Failed to send verification email: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #f5f5f5;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: white;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 40px 30px;
+          text-align: center;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 28px;
+        }
+        .content {
+          padding: 40px 30px;
+        }
+        .button {
+          display: inline-block;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 16px 40px;
+          text-decoration: none;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: bold;
+          margin: 20px 0;
+        }
+        .button:hover {
+          opacity: 0.9;
+        }
+        .info-box {
+          background: #f8f9fa;
+          border-right: 4px solid #667eea;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 6px;
+        }
+        .footer {
+          background: #f8f9fa;
+          padding: 20px;
+          text-align: center;
+          color: #6c757d;
+          font-size: 14px;
+        }
+        .expiry-warning {
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-radius: 6px;
+          padding: 15px;
+          margin: 20px 0;
+          color: #856404;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📧 تحقق من بريدك الإلكتروني</h1>
+          <p>مرحباً ${params.userName}!</p>
+        </div>
+
+        <div class="content">
+          <p>شكراً لتسجيلك في LicenseGate!</p>
+          
+          <p>للبدء في استخدام حسابك ${params.licenseKey ? 'وتفعيل ترخيصك' : ''}, يرجى التحقق من بريدك الإلكتروني بالنقر على الزر أدناه:</p>
+
+          <center>
+            <a href="${verificationUrl}" class="button">
+              ✅ تحقق من بريدي الإلكتروني
+            </a>
+          </center>
+
+          ${params.licenseKey ? `
+          <div class="info-box">
+            <h3>🎫 ترخيصك في انتظارك!</h3>
+            <p>مفتاح الترخيص: <strong>${params.licenseKey}</strong></p>
+            <p><em>⚠️ سيتم تفعيل الترخيص تلقائياً بمجرد التحقق من بريدك.</em></p>
+          </div>
+          ` : ''}
+
+          <div class="expiry-warning">
+            <strong>⏰ تنبيه مهم:</strong>
+            <p style="margin: 5px 0;">هذا الرابط صالح لمدة 24 ساعة فقط. بعد انتهاء المدة، ستحتاج إلى طلب رابط جديد.</p>
+          </div>
+
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e9ecef;">
+
+          <p><strong>لم تطلب هذا البريد؟</strong></p>
+          <p>إذا لم تقم بالتسجيل في LicenseGate، يمكنك تجاهل هذا البريد بأمان.</p>
+
+          <p>أو يمكنك نسخ الرابط التالي ولصقه في متصفحك:</p>
+          <p style="background: #f8f9fa; padding: 15px; border-radius: 6px; word-break: break-all; font-size: 12px;">
+            ${verificationUrl}
+          </p>
+        </div>
+
+        <div class="footer">
+          <p>إذا كانت لديك أي أسئلة، تواصل معنا على:</p>
+          <p><a href="mailto:support@licensegate.io">support@licensegate.io</a></p>
+          <p>© 2025 LicenseGate. جميع الحقوق محفوظة.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendMail(params.email, subject, 'verification' as any, {
+    VERIFY_URL: verificationUrl,
+    USER_NAME: params.userName,
+    LICENSE_KEY: params.licenseKey || '',
+  });
+
+  console.log(`[Verification] Email sent to: ${params.email}`);
 }
 
 /**

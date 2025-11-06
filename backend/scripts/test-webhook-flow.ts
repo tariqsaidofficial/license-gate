@@ -5,7 +5,7 @@
  * Webhook → Auto-License → Email Verification → License Activation
  */
 
-import { handleStripeWebhook } from '../src/webhooks/stripe-handler';
+import { handleStripeWebhook } from '../webhooks/stripe-handler';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

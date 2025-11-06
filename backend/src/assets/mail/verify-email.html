@@ -1,63 +1,34 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Verify Email</title>
-  </head>
-  <body style="font-family: Arial, sans-serif">
-    <div
-      style="
+<div style="
+        padding: 1rem;
         max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #f4f4f4;
-      "
-    >
-      <div
-        style="
-          background-color: white;
-          padding: 30px;
-          border-radius: 10px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        "
-      >
-        <h2 style="color: #333; margin-bottom: 20px">Verify Your Email</h2>
-        <p style="color: #666; line-height: 1.6">
-          Thank you for registering! Please verify your email address by
-          clicking the button below:
-        </p>
-        <div style="text-align: center; margin: 30px 0">
-          <a
-            href="{{URL}}"
-            style="
-              background-color: #007bff;
-              color: white;
-              padding: 12px 30px;
-              text-decoration: none;
-              border-radius: 5px;
-              display: inline-block;
-            "
-            >Verify Email</a
-          >
-        </div>
-        <p style="color: #666; line-height: 1.6">
-          Or copy and paste this link in your browser:
-        </p>
-        <p
-          style="
-            color: #007bff;
-            word-break: break-all;
-            font-size: 14px;
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-          "
-        >
-          {{URL}}
-        </p>
-        <p style="color: #999; font-size: 12px; margin-top: 30px">
-          If you didn't create an account, you can safely ignore this email.
-        </p>
-      </div>
-    </div>
-  </body>
-</html>
+        margin-left: auto;
+        margin-right: auto;
+        font-family: Arial, Helvetica, sans-serif;
+      ">
+  <!-- <img src="LOGO" style="margin-bottom: 1rem" alt="logo" width="200px" /> -->
+  <br />
+  <br />
+  <h2 style="font-weight: 500">LicenseGate</h2>
+  <p>
+    <!-- Text for verify email after signup -->
+    Thank you for signing up with LicenseGate.
+    <br />
+    Your account is almost ready to use. Please click the button below to verify your email address.
+  </p>
+  <a style="
+    background-color: #1367c7;
+    color: white;
+    border: 5px solid #1367c7;
+    border-left-width: 10px;
+    border-right-width: 10px;
+    margin-top: 2rem;
+    width: fit-content;
+    display: block;
+    padding: 4px 4px;
+    text-decoration: none;
+    font-weight: 500;
+    border-radius: 3px;
+  " target="_blank" href="{{URL}}">
+    Activate account
+  </a>
+</div>
