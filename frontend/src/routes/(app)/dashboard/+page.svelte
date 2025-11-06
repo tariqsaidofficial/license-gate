@@ -2,6 +2,7 @@
 	import PageTitle from '../../../lib/components/basics/PageTitle.svelte'
 	import SmallSelector from '../../../lib/components/basics/SmallSelector.svelte'
 	import QuickStatsRow from '../../../lib/components/dashboard/QuickStatsRow.svelte'
+	import VerificationBanner from '../../../lib/components/global/VerificationBanner.svelte'
 	import HistogramChart from '../../../lib/components/stats/HistogramChart.svelte'
 
 	const INTERVAL_TYPES = [
@@ -38,6 +39,8 @@
 
 	let selectedIntervalType: (typeof INTERVAL_TYPES)[number] = INTERVAL_TYPES[1]
 </script>
+
+<VerificationBanner />
 
 <PageTitle title="Dashboard" />
 

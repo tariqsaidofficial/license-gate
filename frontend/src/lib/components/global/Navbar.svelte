@@ -6,6 +6,7 @@
 	import Button from '../basics/Button.svelte'
 	import Chip from '../basics/Chip.svelte'
 	import MobileNavbar from './MobileNavbar.svelte'
+	import VerificationStatusIndicator from './VerificationStatusIndicator.svelte'
 
 	let licenseCount: null | number = null
 
@@ -85,7 +86,10 @@
 	<div class="flex flex-col gap-2 mt-auto mb-4 text-sm text-center text-gray-600">
 		<div>
 			Logged in as <br />
-			<b class="font-medium text-black">{$userEmail}</b> <br />
+			<div class="flex items-center justify-center gap-2">
+				<b class="font-medium text-black">{$userEmail}</b>
+				<VerificationStatusIndicator />
+			</div>
 			<span class="font-mono">User ID: {$userId}</span>
 		</div>
 
