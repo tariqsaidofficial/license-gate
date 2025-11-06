@@ -13,7 +13,33 @@ import { RegisterRoutes } from "./tsoa-generated/routes";
 import { ShowError } from "./utils/ShowError";
 import { tsoaErrorHandler } from "./utils/tsoa-response-error";
 
+// Security middleware imports
+import {
+  apiLimiter,
+  authLimiter,
+  compressionConfig,
+  enforceHTTPS,
+  generalLimiter,
+  helmetConfig,
+  requestLogger,
+  validateEnvVars
+} from "./middleware/security";
+
+// Validate environment variables on startup
+validateEnvVars();
+
 const app = express();
+
+// Apply security middleware
+app.use(helmetConfig);
+app.use(compressionConfig);
+app.use(enforceHTTPS);
+app.use(requestLogger);
+
+// Rate limiting
+app.use('/trpc/auth', authLimiter);
+app.use('/api', apiLimiter);
+app.use(generalLimiter);
 
 app.use(
   "/trpc",

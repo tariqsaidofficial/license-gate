@@ -1,5 +1,6 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { router } from "../trpc";
+import { adminRouter } from "./admin";
 import { apiKeyRouter } from "./apiKey";
 import { authRouter } from "./auth";
 import { licenseRouter } from "./license";
@@ -12,6 +13,7 @@ export const appRouter = router({
   logs: logsRouter,
   apiKey: apiKeyRouter,
   verification: verificationRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;

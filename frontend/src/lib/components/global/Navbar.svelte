@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores'
 	import { onMount } from 'svelte'
-	import { logout, userEmail, userId } from '../../stores/auth'
+	import { isAdmin, logout, userEmail, userId } from '../../stores/auth'
 	import { trpc } from '../../trpcClient'
 	import Button from '../basics/Button.svelte'
 	import Chip from '../basics/Chip.svelte'
@@ -12,6 +12,18 @@
 
 	onMount(async () => {
 		licenseCount = await trpc.license.countActive.query()
+		
+		// Update user admin status from server
+		try {
+			const userInfo = await trpc.auth.me.query()
+			if (userInfo.isAdmin !== $isAdmin) {
+				// Import and call updateUserInfo function
+				const { updateUserInfo } = await import('../../stores/auth')
+				updateUserInfo(userInfo.isAdmin)
+			}
+		} catch (error) {
+			console.error('Failed to fetch user info:', error)
+		}
 	})
 
 	const PAGES = [
@@ -34,6 +46,13 @@
 			primary: true,
 		},
 		{
+			name: 'User Management',
+			icon: 'people',
+			href: '/user-management',
+			primary: true,
+			adminOnly: true,
+		},
+		{
 			name: 'API keys',
 			icon: 'lock_open',
 			href: '/api-keys',
@@ -46,6 +65,8 @@
 			primary: true,
 		},
 	] as const
+
+	$: visiblePages = PAGES.filter(page => !page.adminOnly || $isAdmin)
 
 	let showMenu = false
 </script>
@@ -65,7 +86,7 @@
 	</div>
 
 	<nav class="flex flex-col mt-6">
-		{#each PAGES as link (link.href)}
+		{#each visiblePages as link (link.href)}
 			{@const active = $page.url.pathname.startsWith(link.href)}
 			<a
 				href={link.href}
@@ -111,4 +132,4 @@
 	</div>
 </div>
 
-<MobileNavbar pages={PAGES.filter((p) => p.primary)} bind:showMenu />
+<MobileNavbar pages={visiblePages.filter((p) => p.primary)} bind:showMenu />

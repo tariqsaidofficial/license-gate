@@ -14,7 +14,9 @@ model User {
   id              Int      @id @default(autoincrement())
   userID          String   @unique // NanoID - elegant and secure user identifier
   email           String   @unique
+  fullName        String?  @db.VarChar(255) // Full name of the user
   phone           String?  @db.VarChar(20)
+  company         String?  @db.VarChar(255) // Company name
   isEmailVerified Boolean  @default(false)
   passwordHash    String?
   refreshSession  String?
@@ -23,6 +25,9 @@ model User {
 
   marketingEmails Boolean @default(false)
   isAdmin         Boolean @default(false)
+  isActive        Boolean @default(true)  // Account status
+  maxLicenses     Int?    @default(10)    // Maximum licenses allowed
+  maxApiKeys      Int?    @default(5)     // Maximum API keys allowed
   rsaPublicKey    String  @db.Text
   rsaPrivateKey   String  @db.Text
 

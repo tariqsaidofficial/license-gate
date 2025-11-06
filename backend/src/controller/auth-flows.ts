@@ -1,11 +1,19 @@
+import { OAuthApp } from "@octokit/oauth-app";
 import { NextFunction, Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../prisma";
 import { ShowError } from "../utils/ShowError";
 import { Authenticator } from "../utils/authenticator";
 import { sendMail } from "../utils/mailer";
+import { generateUserID } from "../utils/nanoid";
 
 const googleOAuth = new OAuth2Client(process.env.GOOGLE_AUTH_CLIENT_ID);
+
+const githubOAuth = new OAuthApp({
+  clientType: "oauth-app",
+  clientId: process.env.GITHUB_CLIENT_ID!,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+});
 
 const authenticator = new Authenticator<{ userId: number }>(
   process.env.JWT_SECRET
@@ -83,6 +91,56 @@ async function fetchEmailFromGoogleToken(token: string) {
   return email;
 }
 
+async function fetchEmailFromGitHubToken(code: string) {
+  try {
+    // Exchange code for access token
+    const { authentication } = await githubOAuth.createToken({ code });
+    const token = authentication.token;
+    
+    // Get user info from GitHub API
+    const response = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+    
+    if (!response.ok) {
+      throw new ShowError("GitHub authentication failed.", "github-auth-error");
+    }
+    
+    const userData = await response.json() as any;
+    
+    // GitHub user might not have a public email, so we need to fetch emails separately
+    let email = userData.email;
+    
+    if (!email) {
+      const emailResponse = await fetch("https://api.github.com/user/emails", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+      
+      if (emailResponse.ok) {
+        const emails = await emailResponse.json() as any[];
+        // Find primary email or first verified email
+        const primaryEmail = emails.find((e: any) => e.primary && e.verified);
+        email = primaryEmail?.email || emails.find((e: any) => e.verified)?.email;
+      }
+    }
+    
+    if (!email) {
+      throw new ShowError("GitHub authentication failed - no verified email found.", "github-auth-error");
+    }
+    
+    return email.toLowerCase();
+  } catch (error) {
+    if (error instanceof ShowError) throw error;
+    throw new ShowError("GitHub authentication failed.", "github-auth-error");
+  }
+}
+
 async function updateUserRefreshSession(
   userId: number,
   refreshSession: string
@@ -114,6 +172,13 @@ export async function loginWithGoogle(
     where: {
       email,
     },
+    select: {
+      id: true,
+      userID: true,
+      email: true,
+      isEmailVerified: true,
+      refreshSession: true
+    }
   });
 
   if (!user) {
@@ -136,7 +201,55 @@ export async function loginWithGoogle(
     await updateUserRefreshSession(user.id, refreshSession);
   }
 
-  return { accessToken, refreshToken, userId: user.uuid, email };
+  return { accessToken, refreshToken, userId: user.userID, email };
+}
+
+export async function loginWithGitHub(
+  code: string,
+  createAccountIfNotFound: boolean,
+  marketingEmails?: boolean
+): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+  email: string;
+}> {
+  const email = await fetchEmailFromGitHubToken(code);
+
+  let user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+      userID: true,
+      email: true,
+      isEmailVerified: true,
+      refreshSession: true
+    }
+  });
+
+  if (!user) {
+    if (!createAccountIfNotFound)
+      throw new ShowError(
+        "There is no account linked to this email address. Please sign up.",
+        "no-account-for-github-email"
+      );
+
+    user = await createUser(email, null, true, marketingEmails ?? false);
+  }
+
+  const { accessToken, refreshSession, refreshToken } =
+    authenticator.directLogin(
+      { userId: user.id },
+      user.refreshSession ?? undefined
+    );
+
+  if (!user.refreshSession) {
+    await updateUserRefreshSession(user.id, refreshSession);
+  }
+
+  return { accessToken, refreshToken, userId: user.userID, email };
 }
 
 export async function loginWithPassword(
@@ -240,6 +353,7 @@ async function createUser(
     const user = await prisma.user.create({
       data: {
         email,
+        userID: generateUserID(),
         passwordHash:
           password != null ? await authenticator.hashPassword(password) : null,
         isEmailVerified,

@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import argon2 from 'argon2';
 import NodeRSA from 'node-rsa';
 import { generateLicenseKey, generateLicenseName, generateSecurePassword } from '../../utils/license-key-generator';
-import { generateUUID } from '../../utils/uuid-generator';
 import { sendMail } from '../../utils/mailer';
+import { generateUserID } from '../../utils/nanoid';
 
 const prisma = new PrismaClient();
 
@@ -223,12 +223,12 @@ async function createNewUser(params: {
   // Hash password
   const passwordHash = await argon2.hash(params.temporaryPassword);
 
-  // Generate UUID
-  const uuid = generateUUID();
+  // Generate userID
+  const userID = generateUserID();
 
   return await prisma.user.create({
     data: {
-      uuid,
+      userID,
       email: params.email.toLowerCase(),
       phone: params.phone ?? null,
       isEmailVerified: false,

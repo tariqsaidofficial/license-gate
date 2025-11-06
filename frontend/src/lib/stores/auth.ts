@@ -6,6 +6,7 @@ type LoggedInState = {
 	userId: string
 	email: string
 	loggedInUntil: number
+	isAdmin?: boolean
 } | null
 
 const loggedInState = persisted('loggedInState', null as LoggedInState)
@@ -13,6 +14,7 @@ const loggedInState = persisted('loggedInState', null as LoggedInState)
 export const loggedIn = derived(loggedInState, ($loggedInState) => !!$loggedInState)
 export const userId = derived(loggedInState, ($loggedInState) => $loggedInState?.userId)
 export const userEmail = derived(loggedInState, ($loggedInState) => $loggedInState?.email)
+export const isAdmin = derived(loggedInState, ($loggedInState) => $loggedInState?.isAdmin || false)
 
 export function checkLoginState() {
 	const loggedInUntil = get(loggedInState)?.loggedInUntil
@@ -24,10 +26,17 @@ export function checkLoginState() {
 	}
 }
 
-export function setLoggedIn(userId: string, email: string) {
+export function setLoggedIn(userId: string, email: string, isAdmin = false) {
 	const loginDuration = 1000 * 60 * 60 * 24 * 7 // 7 days TODO: make this the same as the backend
 	const loggedInUntil = new Date().getTime() + loginDuration
-	loggedInState.set({ userId, email, loggedInUntil })
+	loggedInState.set({ userId, email, loggedInUntil, isAdmin })
+}
+
+export function updateUserInfo(isAdmin: boolean) {
+	const current = get(loggedInState)
+	if (current) {
+		loggedInState.set({ ...current, isAdmin })
+	}
 }
 
 export function logout() {

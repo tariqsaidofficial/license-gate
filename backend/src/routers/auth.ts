@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  loginWithGitHub,
   loginWithGoogle,
   loginWithPassword,
   requestPasswordReset,
@@ -99,6 +100,37 @@ export const authRouter = router({
       return { userId: userId, email };
     }),
 
+  loginWithGitHub: publicProcedure
+    .input(
+      z.object({
+        code: z.string(),
+        createAccountIfNotFound: z.boolean(),
+        marketingEmails: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { accessToken, refreshToken, userId, email } =
+        await loginWithGitHub(
+          input.code,
+          input.createAccountIfNotFound,
+          input.marketingEmails
+        );
+
+      ctx.res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+
+      ctx.res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+
+      return { userId: userId, email };
+    }),
+
   verifyEmail: publicProcedure
     .input(
       z.object({
@@ -178,6 +210,7 @@ export const authRouter = router({
         passwordHash: true,
         marketingEmails: true,
         rsaPublicKey: true,
+        isAdmin: true,
       },
     });
 
@@ -191,6 +224,7 @@ export const authRouter = router({
       isPasswordAccount: !!user.passwordHash,
       marketingEmails: user.marketingEmails,
       rsaPublicKey: user.rsaPublicKey,
+      isAdmin: user.isAdmin,
     };
   }),
 

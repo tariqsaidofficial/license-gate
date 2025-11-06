@@ -11,11 +11,15 @@ declare global {
       SMTP_PORT: string;
       SMTP_SENDER: string;
       JWT_SECRET: string;
+      JWT_REFRESH_SECRET: string;
       RECAPTCHA_SECRET_KEY: string;
       SIGN_IN_URL: string;
       RESET_PASSWORD_URL: string;
       CORS_ORIGIN: string;
+      FRONTEND_URL: string;
       GOOGLE_AUTH_CLIENT_ID: string;
+      GITHUB_CLIENT_ID: string;
+      GITHUB_CLIENT_SECRET: string;
       DISABLE_RECAPTCHA: string;
       DISABLE_SIGN_UP: string;
     }
