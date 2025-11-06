@@ -26,7 +26,7 @@ async function requireAdmin(userId: number): Promise<void> {
 }
 
 // Validation schemas
-const settingsCategorySchema = z.enum(['smtp', 'oauth', 'general', 'security'] as const);
+const settingsCategorySchema = z.nativeEnum(SettingsCategory);
 
 export const configurationRouter = router({
   // Get configuration status and summary
@@ -58,16 +58,16 @@ export const configurationRouter = router({
         let config;
         
         switch (input.category) {
-          case 'smtp':
+          case SettingsCategory.SMTP:
             config = await configurationManager.getSmtpConfig();
             break;
-          case 'oauth':
+          case SettingsCategory.OAUTH:
             config = await configurationManager.getOAuthConfig();
             break;
-          case 'general':
+          case SettingsCategory.GENERAL:
             config = await configurationManager.getGeneralConfig();
             break;
-          case 'security':
+          case SettingsCategory.SECURITY:
             config = await configurationManager.getSecurityConfig();
             break;
           default:

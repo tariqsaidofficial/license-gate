@@ -2,6 +2,7 @@ export type ShowErrorType =
   | "not-found"
   | "internal-server-error"
   | "unauthorized"
+  | "forbidden"
   | "invalid-schema"
   | "google-auth-error"
   | "github-auth-error"
