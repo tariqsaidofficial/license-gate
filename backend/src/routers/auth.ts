@@ -11,7 +11,6 @@ import { prisma } from "../prisma";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { ShowError } from "../utils/ShowError";
 import { verifyRecaptcha } from "../utils/recaptcha";
-import { userIdToHex } from "../utils/user-id";
 
 export const authRouter = router({
   loginWithPassword: publicProcedure
@@ -39,7 +38,7 @@ export const authRouter = router({
         secure: process.env.NODE_ENV === "production",
       });
 
-      return { userId: userIdToHex(userId) };
+      return { userId: userId };
     }),
 
   signUpWithPassword: publicProcedure
@@ -97,7 +96,7 @@ export const authRouter = router({
         secure: process.env.NODE_ENV === "production",
       });
 
-      return { userId: userIdToHex(userId), email };
+      return { userId: userId, email };
     }),
 
   verifyEmail: publicProcedure
@@ -174,6 +173,7 @@ export const authRouter = router({
     const user = await prisma.user.findUnique({
       where: { id: ctx.userId },
       select: {
+        userID: true,
         email: true,
         passwordHash: true,
         marketingEmails: true,
@@ -186,7 +186,7 @@ export const authRouter = router({
     }
 
     return {
-      userId: userIdToHex(ctx.userId),
+      userId: user.userID,
       email: user.email,
       isPasswordAccount: !!user.passwordHash,
       marketingEmails: user.marketingEmails,

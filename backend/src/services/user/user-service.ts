@@ -2,7 +2,7 @@ import { PrismaClient, User } from '@prisma/client';
 import argon2 from 'argon2';
 import NodeRSA from 'node-rsa';
 import { generateSecurePassword } from '../../utils/license-key-generator';
-import { generateUUID } from '../../utils/uuid-generator';
+import { generateUserID } from '../../utils/nanoid';
 
 const prisma = new PrismaClient();
 
@@ -54,13 +54,13 @@ export async function createOrFindUser(
   const publicKey = rsaKey.exportKey('public');
   const privateKey = rsaKey.exportKey('private');
 
-  // توليد UUID فريد
-  const uuid = generateUUID();
+  // توليد معرف مستخدم أنيق وآمن بـ NanoID
+  const userID = generateUserID();
 
   // إنشاء المستخدم
   const newUser = await prisma.user.create({
     data: {
-      uuid,
+      userID,
       email: normalizedEmail,
       phone: phone ?? null,
       isEmailVerified: false, // يحتاج للتحقق

@@ -105,7 +105,7 @@ export async function loginWithGoogle(
 ): Promise<{
   accessToken: string;
   refreshToken: string;
-  userId: number;
+  userId: string;
   email: string;
 }> {
   const email = await fetchEmailFromGoogleToken(token);
@@ -136,19 +136,27 @@ export async function loginWithGoogle(
     await updateUserRefreshSession(user.id, refreshSession);
   }
 
-  return { accessToken, refreshToken, userId: user.id, email };
+  return { accessToken, refreshToken, userId: user.uuid, email };
 }
 
 export async function loginWithPassword(
   email: string,
   password: string
-): Promise<{ accessToken: string; refreshToken: string; userId: number }> {
+): Promise<{ accessToken: string; refreshToken: string; userId: string }> {
   email = email.toLowerCase();
 
   const user = await prisma.user.findUnique({
     where: {
       email,
     },
+    select: {
+      id: true,
+      userID: true,
+      email: true,
+      isEmailVerified: true,
+      passwordHash: true,
+      refreshSession: true
+    }
   });
 
   if (!user) throw new ShowError("Invalid email or password.", "unauthorized");
@@ -182,7 +190,7 @@ export async function loginWithPassword(
   return {
     accessToken: data.accessToken,
     refreshToken: data.refreshToken,
-    userId: user.id,
+    userId: user.userID,
   };
 }
 
