@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageTitle from '../../../lib/components/basics/PageTitle.svelte'
+	import { trpc } from '../../../lib/trpcClient'
 	
 	// Sample data for email templates
 	const sampleData = {
@@ -188,6 +189,83 @@
 	]
 	
 	let selectedTemplate = emailTemplates[0]
+	
+	// Test Email Functionality
+	let testEmail = ''
+	let sendingTestEmail = false
+	let testEmailSent = false
+	
+	async function sendTestEmail() {
+		if (!testEmail || !selectedTemplate) return
+		
+		sendingTestEmail = true
+		testEmailSent = false
+		
+		try {
+			// Call the backend API to send test email
+			const result = await trpc.admin.sendTestEmail.mutate({
+				recipientEmail: testEmail,
+				templateName: selectedTemplate.name,
+				templateData: {
+					userName: sampleData.userName,
+					userEmail: testEmail,
+					verifyUrl: sampleData.verifyUrl,
+					resetUrl: sampleData.resetUrl,
+					dashboardUrl: sampleData.dashboardUrl,
+					licenseKey: sampleData.licenseKey,
+					productName: sampleData.productName,
+					expirationDate: sampleData.expirationDate
+				}
+			})
+			
+			if (result.success) {
+				testEmailSent = true
+				
+				// Show success message for 5 seconds
+				setTimeout(() => {
+					testEmailSent = false
+				}, 5000)
+				
+				console.log('✅ Test email sent successfully:', result)
+			}
+			
+		} catch (error) {
+			console.error('❌ Failed to send test email:', error)
+			
+			// Show error notification
+			const errorMessage = error?.message || 'Failed to send test email. Please check SMTP configuration.'
+			
+			// You can add a toast notification here if available
+			alert(`Error: ${errorMessage}`)
+		} finally {
+			sendingTestEmail = false
+		}
+	}
+	
+	// Reset test email status when template changes
+	$: if (selectedTemplate) {
+		testEmailSent = false
+	}
+	
+	// Save custom template data to localStorage
+	$: if (typeof window !== 'undefined') {
+		localStorage.setItem('demo-template-data', JSON.stringify(sampleData))
+	}
+	
+	// Load custom template data from localStorage
+	import { onMount } from 'svelte'
+	
+	onMount(() => {
+		const saved = localStorage.getItem('demo-template-data')
+		if (saved) {
+			try {
+				const savedData = JSON.parse(saved)
+				Object.assign(sampleData, savedData)
+			} catch (e) {
+				console.log('Could not load saved template data')
+			}
+		}
+	})
 </script>
 
 <PageTitle title="Email Templates Demo" />
@@ -216,6 +294,106 @@
 				</button>
 			{/each}
 		</div>
+
+		<!-- Test Email Section -->
+		<div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 mb-6 border border-green-200">
+			<div class="flex items-center mb-4">
+				<svg class="w-6 h-6 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+					<path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+					<path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+				</svg>
+				<h3 class="text-lg font-semibold text-gray-800">Send Test Email</h3>
+			</div>
+			
+			<p class="text-gray-600 mb-4">
+				Test the selected email template by sending it to any email address. This helps you verify how the email will look in different email clients.
+			</p>
+			
+			<div class="flex flex-col sm:flex-row gap-3">
+				<div class="flex-1">
+					<label class="block text-sm font-medium text-gray-700 mb-2">
+						Recipient Email Address
+					</label>
+					<input
+						type="email"
+						bind:value={testEmail}
+						placeholder="test@example.com"
+						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						disabled={sendingTestEmail}
+					/>
+				</div>
+				
+				<div class="flex flex-col justify-end">
+					<button
+						on:click={sendTestEmail}
+						disabled={!testEmail || sendingTestEmail || !selectedTemplate}
+						class="px-6 py-2 bg-green-600 text-white rounded-lg font-medium transition-all duration-200 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center min-w-[140px]"
+					>
+						{#if sendingTestEmail}
+							<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+							Sending...
+						{:else if testEmailSent}
+							<svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+							</svg>
+							Sent!
+						{:else}
+							<svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+								<path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+								<path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+							</svg>
+							Send Test
+						{/if}
+					</button>
+				</div>
+			</div>
+			
+			{#if testEmailSent}
+				<div class="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+					<div class="flex items-center">
+						<svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+						</svg>
+						<span class="text-green-800 font-medium">
+							Test email sent successfully to {testEmail}!
+						</span>
+					</div>
+					<p class="text-green-700 text-sm mt-1 ml-7">
+						Template: <strong>{selectedTemplate.name}</strong> • Check your inbox and spam folder.
+					</p>
+				</div>
+			{/if}
+			
+			<div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+				<div class="flex items-center text-gray-600">
+					<svg class="w-4 h-4 mr-2 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+					</svg>
+					<span>Selected: <strong>{selectedTemplate.name}</strong></span>
+				</div>
+				<div class="flex items-center text-gray-600">
+					<svg class="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+					</svg>
+					<span>Requires SMTP setup</span>
+				</div>
+				<div class="flex items-center text-gray-600">
+					<svg class="w-4 h-4 mr-2 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+					</svg>
+					<span>Real email delivery</span>
+				</div>
+				<div class="flex items-center text-gray-600">
+					<svg class="w-4 h-4 mr-2 text-purple-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+						<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+					</svg>
+					<span>Admin access required</span>
+				</div>
+			</div>
+		</div>
 	</div>
 
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -227,13 +405,54 @@
 			<div class="space-y-3">
 				<div>
 					<h3 class="font-medium text-gray-700 mb-2">Template Variables:</h3>
-					<div class="bg-gray-50 rounded p-3 text-sm font-mono">
-						<div class="grid grid-cols-1 gap-1">
-							<div><span class="text-blue-600">userName:</span> {sampleData.userName}</div>
-							<div><span class="text-blue-600">userEmail:</span> {sampleData.userEmail}</div>
-							<div><span class="text-blue-600">productName:</span> {sampleData.productName}</div>
-							<div><span class="text-blue-600">licenseKey:</span> {sampleData.licenseKey}</div>
-							<div><span class="text-blue-600">expirationDate:</span> {sampleData.expirationDate}</div>
+					<div class="bg-gray-50 rounded p-3 text-sm space-y-2">
+						<div class="grid grid-cols-1 gap-2">
+							<div class="flex items-center">
+								<label class="w-20 text-blue-600 font-mono text-xs">userName:</label>
+								<input 
+									type="text" 
+									bind:value={sampleData.userName}
+									class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+								/>
+							</div>
+							<div class="flex items-center">
+								<label class="w-20 text-blue-600 font-mono text-xs">productName:</label>
+								<input 
+									type="text" 
+									bind:value={sampleData.productName}
+									class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+								/>
+							</div>
+							<div class="flex items-center">
+								<label class="w-20 text-blue-600 font-mono text-xs">licenseKey:</label>
+								<input 
+									type="text" 
+									bind:value={sampleData.licenseKey}
+									class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded font-mono"
+								/>
+							</div>
+							<div class="flex items-center">
+								<label class="w-20 text-blue-600 font-mono text-xs">expiration:</label>
+								<input 
+									type="date" 
+									bind:value={sampleData.expirationDate}
+									class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+								/>
+							</div>
+						</div>
+						<div class="pt-2 border-t border-gray-200">
+							<button 
+								on:click={() => {
+									// Reset to defaults
+									sampleData.userName = 'John Doe'
+									sampleData.productName = 'LicenseGate Pro'
+									sampleData.licenseKey = 'ABCD-EFGH-IJKL-MNOP'
+									sampleData.expirationDate = '2025-12-31'
+								}}
+								class="text-xs text-blue-600 hover:text-blue-800 underline"
+							>
+								Reset to defaults
+							</button>
 						</div>
 					</div>
 				</div>
@@ -294,8 +513,80 @@
 		</div>
 	</div>
 
+	<!-- SMTP Configuration Quick Setup -->
+	<div class="mt-8 bg-yellow-50 rounded-lg p-6 border border-yellow-200">
+		<div class="flex items-center mb-4">
+			<svg class="w-6 h-6 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+				<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+			</svg>
+			<h3 class="text-lg font-semibold text-yellow-800">⚙️ SMTP Configuration Required</h3>
+		</div>
+		
+		<p class="text-yellow-700 mb-4">
+			To send test emails, you need to configure SMTP settings. You can do this in the Account Settings or by updating your environment variables.
+		</p>
+		
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+			<div>
+				<h4 class="font-medium text-yellow-800 mb-2">Quick Setup Options:</h4>
+				<div class="space-y-2">
+					<a 
+						href="/settings/account" 
+						class="flex items-center p-3 bg-white rounded border border-yellow-300 hover:border-yellow-400 transition-colors"
+					>
+						<svg class="w-5 h-5 text-yellow-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+						</svg>
+						<div>
+							<div class="font-medium text-yellow-800">Configure in Account Settings</div>
+							<div class="text-sm text-yellow-600">Admin panel with SMTP form</div>
+						</div>
+					</a>
+					
+					<div class="p-3 bg-white rounded border border-yellow-300">
+						<div class="flex items-center mb-2">
+							<svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+							</svg>
+							<div class="font-medium text-yellow-800">Environment Variables</div>
+						</div>
+						<div class="text-sm text-yellow-600 font-mono bg-yellow-100 p-2 rounded">
+							SMTP_HOST=smtp.gmail.com<br>
+							SMTP_PORT=587<br>
+							SMTP_USERNAME=your-email@gmail.com<br>
+							SMTP_PASSWORD=your-app-password<br>
+							SMTP_SENDER=LicenseGate &lt;noreply@yourdomain.com&gt;
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div>
+				<h4 class="font-medium text-yellow-800 mb-2">Popular SMTP Providers:</h4>
+				<div class="space-y-2 text-sm">
+					<div class="p-2 bg-white rounded border border-yellow-300">
+						<div class="font-medium text-yellow-800">Gmail</div>
+						<div class="text-yellow-600">smtp.gmail.com:587 (Use App Password)</div>
+					</div>
+					<div class="p-2 bg-white rounded border border-yellow-300">
+						<div class="font-medium text-yellow-800">Outlook/Hotmail</div>
+						<div class="text-yellow-600">smtp-mail.outlook.com:587</div>
+					</div>
+					<div class="p-2 bg-white rounded border border-yellow-300">
+						<div class="font-medium text-yellow-800">SendGrid</div>
+						<div class="text-yellow-600">smtp.sendgrid.net:587</div>
+					</div>
+					<div class="p-2 bg-white rounded border border-yellow-300">
+						<div class="font-medium text-yellow-800">Mailgun</div>
+						<div class="text-yellow-600">smtp.mailgun.org:587</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!-- Technical Information -->
-	<div class="mt-8 bg-blue-50 rounded-lg p-6 border border-blue-200">
+	<div class="mt-6 bg-blue-50 rounded-lg p-6 border border-blue-200">
 		<h3 class="text-lg font-semibold text-blue-800 mb-3">📧 Email System Information</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 			<div>
@@ -316,12 +607,6 @@
 					<li>✅ Automated Sending</li>
 				</ul>
 			</div>
-		</div>
-		<div class="mt-4 p-3 bg-white rounded border border-blue-200">
-			<p class="text-sm text-blue-700">
-				<strong>Setup Required:</strong> Configure SMTP settings in your environment variables to enable email sending.
-				See the <a href="/docs/setup/OAUTH_CONFIGURATION.md" class="underline">setup documentation</a> for details.
-			</p>
 		</div>
 	</div>
 </div>

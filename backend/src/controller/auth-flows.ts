@@ -41,7 +41,7 @@ export async function authExpressMiddleware(
   if (!token) return next();
 
   const verifyResult = authenticator.verifyAccessToken(token);
-  if (verifyResult.success) {
+  if (verifyResult.success && verifyResult.data?.userId) {
     req.userId = verifyResult.data.userId;
     return next();
   }

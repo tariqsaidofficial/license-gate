@@ -36,6 +36,11 @@ model User {
   apiKeys         ApiKey[]
   paymentLicenses PaymentLicense[]
   emailVerificationTokens EmailVerificationToken[]
+  
+  // Settings Management Relations
+  createdSettings Setting[] @relation("SettingCreator")
+  updatedSettings Setting[] @relation("SettingUpdater")
+  settingAudits   SettingAudit[]
 
   @@index([email])
   @@index([userID])
@@ -194,4 +199,50 @@ model EmailVerificationToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("email_verification_tokens")
+}
+
+// ========================================
+// Settings Management Models
+// ========================================
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  category    String   @db.VarChar(50)  // 'smtp', 'oauth', 'general'
+  key         String   @db.VarChar(100) // 'host', 'port', 'username'
+  value       String?  @db.Text         // Encrypted for sensitive data
+  isEncrypted Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   Int      @map("created_by")
+  updatedBy   Int      @map("updated_by")
+  
+  creator User @relation("SettingCreator", fields: [createdBy], references: [id])
+  updater User @relation("SettingUpdater", fields: [updatedBy], references: [id])
+  
+  @@unique([category, key])
+  @@index([category])
+  @@index([isActive])
+  @@map("settings")
+}
+
+model SettingAudit {
+  id        Int      @id @default(autoincrement())
+  settingId Int?     @map("setting_id") // Null for deleted settings
+  category  String   @db.VarChar(50)
+  key       String   @db.VarChar(100)
+  oldValue  String?  @db.Text @map("old_value")
+  newValue  String?  @db.Text @map("new_value")
+  action    String   @db.VarChar(20) // 'CREATE', 'UPDATE', 'DELETE'
+  userId    Int      @map("user_id")
+  timestamp DateTime @default(now())
+  ipAddress String?  @db.VarChar(45) @map("ip_address")
+  userAgent String?  @db.Text @map("user_agent")
+  
+  user User @relation(fields: [userId], references: [id])
+  
+  @@index([category])
+  @@index([timestamp])
+  @@index([userId])
+  @@map("setting_audits")
 }

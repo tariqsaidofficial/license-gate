@@ -365,5 +365,90 @@ export const adminRouter = router({
       });
 
       return { success: true, message: "User deleted successfully" };
+    }),
+
+  // Send test email - for testing email templates
+  sendTestEmail: protectedProcedure
+    .input(z.object({
+      recipientEmail: z.string().email("Invalid email address"),
+      templateName: z.string(),
+      templateData: z.object({
+        userName: z.string().optional(),
+        userEmail: z.string().optional(),
+        verifyUrl: z.string().optional(),
+        resetUrl: z.string().optional(),
+        dashboardUrl: z.string().optional(),
+        licenseKey: z.string().optional(),
+        productName: z.string().optional(),
+        expirationDate: z.string().optional()
+      }).optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      console.log('📧 sendTestEmail called:', input);
+      
+      await requireAdmin(ctx.userId);
+
+      try {
+        // Get admin user info for sender context
+        const adminUser = await prisma.user.findUnique({
+          where: { id: ctx.userId },
+          select: { email: true, fullName: true }
+        });
+
+        // Default template data
+        const defaultData = {
+          userName: input.templateData?.userName || 'Test User',
+          userEmail: input.templateData?.userEmail || input.recipientEmail,
+          verifyUrl: input.templateData?.verifyUrl || `${process.env.FRONTEND_URL}/verify?token=test-token`,
+          resetUrl: input.templateData?.resetUrl || `${process.env.FRONTEND_URL}/reset?token=test-token`,
+          dashboardUrl: input.templateData?.dashboardUrl || `${process.env.FRONTEND_URL}/dashboard`,
+          licenseKey: input.templateData?.licenseKey || 'TEST-ABCD-EFGH-IJKL',
+          productName: input.templateData?.productName || 'LicenseGate Pro',
+          expirationDate: input.templateData?.expirationDate || '2025-12-31'
+        };
+
+        // Map template names to email subjects and template files
+        const templateMap: Record<string, { subject: string, template: string }> = {
+          'Welcome New User': { subject: 'Welcome to LicenseGate!', template: 'welcome-new-user' },
+          'Email Verification': { subject: 'Please verify your email address', template: 'verify-email' },
+          'Password Reset': { subject: 'Reset your LicenseGate password', template: 'reset-password' },
+          'License Ready': { subject: 'Your license is ready!', template: 'license-ready' },
+          'Activation Confirmation': { subject: 'Account successfully activated', template: 'activation-confirmation' },
+          'Verification Reminder': { subject: 'Please verify your email address', template: 'verification-reminder' }
+        };
+
+        const templateInfo = templateMap[input.templateName];
+        if (!templateInfo) {
+          throw new ShowError(`Unknown template: ${input.templateName}`, "invalid-schema");
+        }
+
+        const subject = `[TEST] ${templateInfo.subject}`;
+
+        // Send test email using the mailer
+        await sendMail(
+          input.recipientEmail,
+          subject,
+          templateInfo.template as any,
+          {
+            ...defaultData,
+            testNote: `This is a test email sent by ${adminUser?.fullName || 'Admin'} (${adminUser?.email}) from LicenseGate Demo.`
+          }
+        );
+
+        console.log('✅ Test email sent successfully to:', input.recipientEmail);
+
+        return {
+          success: true,
+          message: `Test email sent successfully to ${input.recipientEmail}`,
+          templateName: input.templateName,
+          recipientEmail: input.recipientEmail
+        };
+      } catch (error) {
+        console.error('❌ Error sending test email:', error);
+        if (error instanceof ShowError) {
+          throw error;
+        }
+        throw new ShowError("Failed to send test email. Please check SMTP configuration.", "internal-server-error");
+      }
     })
 });

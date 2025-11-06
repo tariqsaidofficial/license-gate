@@ -5,6 +5,7 @@ import { apiKeyRouter } from "./apiKey";
 import { authRouter } from "./auth";
 import { licenseRouter } from "./license";
 import { logsRouter } from "./logs";
+import { settingsRouter } from "./settings.router";
 import { verificationRouter } from "./verification";
 
 export const appRouter = router({
@@ -14,6 +15,7 @@ export const appRouter = router({
   apiKey: apiKeyRouter,
   verification: verificationRouter,
   admin: adminRouter,
+  settings: settingsRouter,
 });
 
 export type AppRouter = typeof appRouter;
